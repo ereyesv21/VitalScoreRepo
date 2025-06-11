@@ -1,12 +1,19 @@
-import express from 'express';
+import "./infraestructure/config/enviroment-vars";
+import app from './infraestructure/web/app';
+import { ServerBootstrap } from './infraestructure/boostrap/server.boostrap';
+import { connectDB } from './infraestructure/config/data-base';
 
-const app = express();
-const port = 3000;
+const server = new ServerBootstrap(app);
+//inicio el servidor y maneja errores de inicializacion
 
-app.get('/', (_req, res) => {
-  res.send('API funcionando 🎉');
-});
-
-app.listen(port, () => {
-  console.log(`Servidor backend corriendo en http://localhost:${port}`);
-});
+((async () =>{
+        try{
+            await connectDB();
+            const instances = [server.init()];
+            await Promise.all(instances)
+        }catch(error){
+            console.error(error);
+            process.exit(1); //termina el proceso si hay un error
+        }
+    })
+)();
