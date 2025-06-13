@@ -1,5 +1,6 @@
 import express, {Request, Response} from 'express';
-import userRoutes from '../routes/UsersRoutes';
+import usuariosRoutes from '../routes/UsuariosRoutes';
+
 
 class app{
     //declarar atributos 
@@ -16,7 +17,7 @@ class app{
     }
 
     private routes():void{
-        this.app.use("/api",userRoutes);
+        this.app.use("/api", usuariosRoutes);
     }
 
     getApp(){

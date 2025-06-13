@@ -1,5 +1,5 @@
 import {DataSource} from 'typeorm';
-import { User } from '../entities/Users';
+import { Usuario } from '../entities/Usuarios';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -11,9 +11,9 @@ export const AppDataSource = new DataSource({
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
     schema: process.env.DB_SCHEMA,
-    synchronize: true,
+    synchronize: false,
     logging: true,
-    entities: [User],
+    entities: [Usuario],
 });
 
 //conectar a la base de datos
