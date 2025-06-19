@@ -9,6 +9,22 @@ export class UsuariosController {
         this.app = app;
     }
 
+    async login(req:Request, res:Response):Promise<String | Response>{
+      try {
+        const {correo,contraseña} = req.body;
+
+        if (!correo || !contraseña) {
+          return res.status(400).json({ error: "Error en el email y contraseña" });
+        }
+        
+        const token = await this.app.login(correo, contraseña);
+        return res.status(200).json({ message: "Login exitoso", token });
+
+      } catch (error) {
+        return res.status(401).json({ error: "Credenciales incorrectas" });
+      }
+    }
+
     async createUsuario(req: Request, res: Response): Promise<Response> {
         try {
             const { nombre, apellido, correo, contraseña, estado = "activo", rol = 1, genero } = req.body;

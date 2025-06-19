@@ -3,6 +3,7 @@ import {Usuario as UsuarioEntity} from "../entities/Usuarios"; //importamos la e
 import {Usuarios as UsuarioDomain} from "../../domain/Usuarios"; //importamos el usuario del dominio
 import { Repository } from "typeorm";
 import { AppDataSource } from "../config/data-base";
+import { Rol } from "../entities/Rol";
 
 export class UsuariosAdapter implements UsuariosPort {
 
@@ -21,29 +22,36 @@ export class UsuariosAdapter implements UsuariosPort {
             correo: usuarioEntity.correo,
             contraseña: usuarioEntity.contraseña,
             estado: usuarioEntity.estado,
-            rol: usuarioEntity.rol,
+            rol: usuarioEntity.rol ? usuarioEntity.rol.id_rol : 0,
             genero: usuarioEntity.genero
         };
     }
  
     //Transforma el modelo de dominio a la entidad de infraestructura
-    private toEntity(usuarioDomain: Omit<UsuarioDomain, "id_usuario">): Omit<UsuarioEntity, "id_usuario"> {
+    private toEntity(usuarioDomain: Omit<UsuarioDomain, "id_usuario">, rolEntity: Rol): Omit<UsuarioEntity, "id_usuario"> {
         const usuarioEntity = new UsuarioEntity();
         usuarioEntity.nombre = usuarioDomain.nombre;
         usuarioEntity.apellido = usuarioDomain.apellido;
         usuarioEntity.correo = usuarioDomain.correo;
         usuarioEntity.contraseña = usuarioDomain.contraseña;
         usuarioEntity.estado = usuarioDomain.estado;
-        usuarioEntity.rol = usuarioDomain.rol;
+        usuarioEntity.rol = rolEntity;
         usuarioEntity.genero = usuarioDomain.genero;
         return usuarioEntity;
     }
 
     async createUsuario(usuario: Omit<UsuarioDomain, "id_usuario">): Promise<number> {
         try {
-            const usuarioEntity = this.toEntity(usuario);
+            // Busca el objeto Rol por id
+            const rolRepository = this.usuarioRepository.manager.getRepository(Rol);
+            const rolEntity = await rolRepository.findOne({ where: { id_rol: usuario.rol } });
+            if (!rolEntity) throw new Error("Rol no encontrado");
+
+            // Crea el usuarioEntity y asigna el objeto rol
+            const usuarioEntity = this.toEntity(usuario, rolEntity) as UsuarioEntity;
+
             const newUsuario = await this.usuarioRepository.save(usuarioEntity);
-            return newUsuario.id_usuario; //retorna el id del usuario creado
+            return newUsuario.id_usuario;
         } catch (error) {
             console.error("Error creating usuario:", error);
             throw new Error("Failed to create usuario");
@@ -85,7 +93,7 @@ export class UsuariosAdapter implements UsuariosPort {
 
     async getUsuarioById(id: number): Promise<UsuarioDomain | null> {
         try {
-            const usuario = await this.usuarioRepository.findOne({ where: { id_usuario: id } });
+            const usuario = await this.usuarioRepository.findOne({ where: { id_usuario: id }, relations: ["rol"] });
             return usuario ? this.toDomain(usuario) : null;
         } catch (error) {
             console.error("Error fetching usuario by ID:", error);
@@ -95,7 +103,7 @@ export class UsuariosAdapter implements UsuariosPort {
 
     async getAllUsuarios(): Promise<UsuarioDomain[]> {
         try {
-            const usuarios = await this.usuarioRepository.find();
+            const usuarios = await this.usuarioRepository.find({ relations: ["rol"] });
             return usuarios.map(usuario => this.toDomain(usuario));
         } catch (error) {
             console.error("Error fetching all usuarios:", error);
@@ -105,7 +113,7 @@ export class UsuariosAdapter implements UsuariosPort {
 
     async getUsuarioByCorreo(correo: string): Promise<UsuarioDomain | null> {
         try {
-            const usuario = await this.usuarioRepository.findOne({ where: { correo: correo } });
+            const usuario = await this.usuarioRepository.findOne({ where: { correo: correo }, relations: ["rol"] });
             return usuario ? this.toDomain(usuario) : null;
         } catch (error) {
             console.error("Error fetching usuario by correo:", error);

@@ -1,5 +1,8 @@
 import express, {Request, Response} from 'express';
 import usuariosRoutes from '../routes/UsuariosRoutes';
+import epsRoutes from '../routes/EpsRoutes';
+import medicoRoutes from '../routes/MedicoRoutes';
+import pacientesRoutes from '../routes/PacientesRoutes';
 
 
 class app{
@@ -18,6 +21,10 @@ class app{
 
     private routes():void{
         this.app.use("/api", usuariosRoutes);
+        this.app.use("/api", epsRoutes);
+        this.app.use("/api", medicoRoutes);
+        this.app.use("/api", pacientesRoutes);
+
     }
 
     getApp(){

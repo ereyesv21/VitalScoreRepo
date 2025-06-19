@@ -1,4 +1,5 @@
-import {Column, Entity, PrimaryGeneratedColumn} from "typeorm";
+import {Column, Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn} from "typeorm";
+import { Rol } from "./Rol";
 
 @Entity({ name: "Usuarios" })
 export class Usuario {
@@ -14,8 +15,11 @@ export class Usuario {
     contraseña!: string;
     @Column({ name: "estado", type: 'varchar', length: 255 })
     estado!: string;
-    @Column({ name: "rol", type: 'int' })
-    rol!: number;
+
+    @ManyToOne(() => Rol)
+    @JoinColumn({ name: "rol" }) // El campo 'rol' en Usuarios es la FK a roles.id
+    rol!: Rol;
+    
     @Column({ name: "genero", type: 'varchar', length: 255 })
     genero!: string;
 } 
