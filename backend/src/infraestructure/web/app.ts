@@ -1,4 +1,5 @@
 import express, {Request, Response} from 'express';
+import cors from 'cors';
 import usuariosRoutes from '../routes/UsuariosRoutes';
 import epsRoutes from '../routes/EpsRoutes';
 import medicoRoutes from '../routes/MedicoRoutes';
@@ -24,6 +25,7 @@ class app{
     }
 
     private middleware():void{
+        this.app.use(cors()); // Enable CORS for all routes
         this.app.use(express.json()); //hace una especi de casteo a especie json sin esto los datos que vengan seran datos null
     }
 

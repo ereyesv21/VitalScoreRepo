@@ -3,12 +3,16 @@ import { UsuariosAdapter } from '../adapter/UsuariosAdapter';
 import { UsuariosApplicationService } from '../../application/UsuariosApplicationService';
 import { UsuariosController } from '../controller/UsuariosController';
 import { authenticateToken } from '../web/authMiddleware';
+import { PacientesAdapter } from '../adapter/PacientesAdapter';
+import { MedicoAdapter } from '../adapter/MedicoAdapter';
 
 const router = Router();
 
 //inicializacion de las capas 
 const usuariosAdapter = new UsuariosAdapter();
-const usuariosAppService = new UsuariosApplicationService(usuariosAdapter);
+const pacientesAdapter = new PacientesAdapter();
+const medicoAdapter = new MedicoAdapter();
+const usuariosAppService = new UsuariosApplicationService(usuariosAdapter, pacientesAdapter, medicoAdapter);
 const usuariosController = new UsuariosController(usuariosAppService);
 
 //definir las rutas con manejo de errores 
@@ -22,6 +26,15 @@ router.post("/usuario", async (req, res) => {
         await usuariosController.createUsuario(req, res);
     } catch (error) {
         res.status(400).json({message: "Error en la creacion del usuario", error});
+    }
+});
+
+// New route for complete registration (user + role profile)
+router.post("/register", async (req, res) => {
+    try {
+        await usuariosController.completeRegistration(req, res);
+    } catch (error) {
+        res.status(400).json({message: "Error en el registro completo", error});
     }
 });
 

@@ -1,215 +1,223 @@
-import { View, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, Pressable, Alert, RefreshControl } from 'react-native';
+import { useState, useEffect } from 'react';
 import { ThemedText } from '../../../components/ThemedText';
 import { Colors } from '../../../constants/Colors';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-
-// Datos mock para simular la información
-const mockData = {
-  vitalScore: 78,
-  treatmentPlan: [
-    { id: 1, title: 'Tomar medicamento A', time: '08:00 AM', completed: true },
-    { id: 2, title: 'Cita con el cardiólogo', date: '15 de junio', completed: false },
-    { id: 3, title: 'Ejercicio diario', time: '17:00 PM', completed: false },
-  ],
-  rewards: {
-    streak: 3,
-    nextReward: 'Completá 5 días seguidos para ganar una medalla',
-    unlocked: false,
-  },
-  nextAppointment: {
-    specialty: 'Nutricionista',
-    date: '20 de junio',
-    time: '10:00 AM',
-    location: 'Clínica Central',
-  },
-  healthTips: [
-    { id: 1, icon: 'water', text: 'Toma 8 vasos de agua al día' },
-    { id: 2, icon: 'run', text: 'Haz 30 min de ejercicio' },
-    { id: 3, icon: 'sleep', text: 'Duerme 8 horas' },
-    { id: 4, icon: 'food-apple', text: 'Come frutas y verduras' },
-  ],
-};
+import { patientService, PatientWithUser } from '../../../services/patients';
+import { authService } from '../../../services/auth';
 
 export default function PatientHome() {
-  const getVitalScoreColor = (score: number) => {
-    if (score >= 80) return Colors.success;
-    if (score >= 60) return Colors.warning;
-    return Colors.error;
-  };
+    const [patient, setPatient] = useState<PatientWithUser | null>(null);
+    const [user, setUser] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
 
-  const handleTaskComplete = (taskId: number) => {
-    Alert.alert('Tarea completada', '¡Buen trabajo!');
-  };
+    useEffect(() => {
+        loadData();
+    }, []);
 
-  const handleViewMore = () => {
-    Alert.alert('Detalles de la cita', 'Aquí verás más información sobre tu próxima cita.');
-  };
+    const loadData = async () => {
+        try {
+            setLoading(true);
+            // Load both patient data and user data
+            const [patientData, userData] = await Promise.all([
+                patientService.getCurrentPatient(),
+                authService.getCurrentUser(),
+            ]);
+            
+            setPatient(patientData);
+            setUser(userData);
+        } catch (error) {
+            Alert.alert(
+                'Error',
+                'No se pudo cargar la información del paciente.'
+            );
+            console.error('Error loading patient data:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-  return (
-    <ScrollView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <LinearGradient
-          colors={[Colors.primary.dark, Colors.primary.medium]}
-          style={styles.headerGradient}
+    const onRefresh = async () => {
+        setRefreshing(true);
+        await loadData();
+        setRefreshing(false);
+    };
+
+    const handleViewMore = () => {
+        Alert.alert('Ver más', 'Aquí verás más detalles sobre tu cita');
+    };
+
+    if (loading) {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <MaterialCommunityIcons name="loading" size={48} color={Colors.primary.dark} />
+                <ThemedText style={{ marginTop: 16, fontSize: 16 }}>Cargando...</ThemedText>
+            </View>
+        );
+    }
+
+    const displayName = user?.nombre && user?.apellido 
+        ? `${user.nombre} ${user.apellido}`
+        : patient?.usuario_data?.nombre && patient?.usuario_data?.apellido
+        ? `${patient.usuario_data.nombre} ${patient.usuario_data.apellido}`
+        : 'Paciente';
+
+    const vitalScore = patient?.vitalScore || patient?.puntos || 0;
+
+    return (
+        <ScrollView 
+            style={styles.container}
+            refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
         >
-          <View style={styles.headerTop}>
-            <View style={styles.headerLeft}>
-              <ThemedText style={styles.greeting}>Hola, Juan!</ThemedText>
-              <ThemedText style={styles.date}>
-                {new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
-              </ThemedText>
+            {/* Header */}
+            <View style={styles.header}>
+                <LinearGradient
+                    colors={[Colors.primary.dark, Colors.primary.medium]}
+                    style={styles.headerGradient}
+                >
+                    <View style={styles.headerTop}>
+                        <View style={styles.headerLeft}>
+                            <ThemedText style={styles.greeting}>
+                                ¡Hola, {displayName}!
+                            </ThemedText>
+                            <ThemedText style={styles.date}>
+                                {new Date().toLocaleDateString('es-ES', {
+                                    weekday: 'long',
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric',
+                                })}
+                            </ThemedText>
+                        </View>
+                        <Pressable style={styles.profileButton}>
+                            <View style={styles.profileImageContainer}>
+                                <MaterialCommunityIcons name="account-circle" size={40} color={Colors.text.light} />
+                                <View style={styles.notificationBadge}>
+                                    <ThemedText style={styles.notificationText}>2</ThemedText>
+                                </View>
+                            </View>
+                        </Pressable>
+                    </View>
+
+                    {/* Header Stats */}
+                    <View style={styles.headerStats}>
+                        <View style={styles.statItem}>
+                            <MaterialCommunityIcons name="heart-pulse" size={24} color={Colors.text.light} />
+                            <View style={styles.statInfo}>
+                                <ThemedText style={styles.statValue}>
+                                    {vitalScore}
+                                </ThemedText>
+                                <ThemedText style={styles.statLabel}>VitalScore</ThemedText>
+                            </View>
+                        </View>
+                        <View style={styles.statDivider} />
+                        <View style={styles.statItem}>
+                            <MaterialCommunityIcons name="calendar-check" size={24} color={Colors.text.light} />
+                            <View style={styles.statInfo}>
+                                <ThemedText style={styles.statValue}>3</ThemedText>
+                                <ThemedText style={styles.statLabel}>Tareas completadas</ThemedText>
+                            </View>
+                        </View>
+                    </View>
+                </LinearGradient>
             </View>
-            <Pressable style={styles.profileButton}>
-              <View style={styles.profileImageContainer}>
-                <MaterialCommunityIcons name="account-circle" size={40} color={Colors.text.light} />
-                <View style={styles.notificationBadge}>
-                  <ThemedText style={styles.notificationText}>2</ThemedText>
+
+            <View style={styles.content}>
+                {/* Sección 1: Plan de tratamiento */}
+                <View style={styles.section}>
+                    <ThemedText style={styles.sectionTitle}>Plan de Tratamiento</ThemedText>
+                    <View style={styles.treatmentCard}>
+                        <View style={styles.treatmentItem}>
+                            <MaterialCommunityIcons name="check-circle" size={24} color={Colors.success} />
+                            <ThemedText style={styles.treatmentText}>Tomar medicamento A</ThemedText>
+                            <ThemedText style={styles.treatmentTime}>08:00 AM</ThemedText>
+                        </View>
+                        <View style={styles.treatmentItem}>
+                            <MaterialCommunityIcons name="calendar" size={24} color={Colors.primary.dark} />
+                            <ThemedText style={styles.treatmentText}>Cita con el cardiólogo</ThemedText>
+                            <ThemedText style={styles.treatmentTime}>15 de junio</ThemedText>
+                        </View>
+                        <View style={styles.treatmentItem}>
+                            <MaterialCommunityIcons name="run" size={24} color={Colors.primary.dark} />
+                            <ThemedText style={styles.treatmentText}>Ejercicio diario</ThemedText>
+                            <ThemedText style={styles.treatmentTime}>17:00 PM</ThemedText>
+                        </View>
+                    </View>
                 </View>
-              </View>
-            </Pressable>
-          </View>
-          <View style={styles.headerStats}>
-            <View style={styles.statItem}>
-              <MaterialCommunityIcons name="calendar-check" size={24} color={Colors.text.light} />
-              <View style={styles.statInfo}>
-                <ThemedText style={styles.statValue}>3</ThemedText>
-                <ThemedText style={styles.statLabel}>Tareas hoy</ThemedText>
-              </View>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <MaterialCommunityIcons name="medal" size={24} color={Colors.text.light} />
-              <View style={styles.statInfo}>
-                <ThemedText style={styles.statValue}>3</ThemedText>
-                <ThemedText style={styles.statLabel}>Días seguidos</ThemedText>
-              </View>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <MaterialCommunityIcons name="heart-pulse" size={24} color={Colors.text.light} />
-              <View style={styles.statInfo}>
-                <ThemedText style={styles.statValue}>78</ThemedText>
-                <ThemedText style={styles.statLabel}>VitalScore</ThemedText>
-              </View>
-            </View>
-          </View>
-        </LinearGradient>
-      </View>
 
-      <View style={styles.content}>
-        {/* Sección 1: Estado general */}
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Estado General</ThemedText>
-          <View style={styles.vitalScoreCard}>
-            <ThemedText style={styles.vitalScoreTitle}>Tu puntuación actual</ThemedText>
-            <View style={styles.scoreContainer}>
-              <ThemedText style={[styles.score, { color: getVitalScoreColor(mockData.vitalScore) }]}>
-                {mockData.vitalScore}
-              </ThemedText>
-              <ThemedText style={styles.scoreMax}>/100</ThemedText>
-            </View>
-            <View style={styles.progressBar}>
-              <View 
-                style={[
-                  styles.progressFill, 
-                  { 
-                    width: `${mockData.vitalScore}%`,
-                    backgroundColor: getVitalScoreColor(mockData.vitalScore)
-                  }
-                ]} 
-              />
-            </View>
-          </View>
-        </View>
-
-        {/* Sección 2: Plan de tratamiento */}
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Plan de Tratamiento</ThemedText>
-          {mockData.treatmentPlan.map((task) => (
-            <Pressable 
-              key={task.id}
-              style={styles.taskCard}
-              onPress={() => handleTaskComplete(task.id)}
-            >
-              <View style={styles.taskInfo}>
-                <MaterialCommunityIcons 
-                  name={task.completed ? 'check-circle' : 'circle-outline'} 
-                  size={24} 
-                  color={task.completed ? Colors.success : Colors.primary.dark} 
-                />
-                <View style={styles.taskDetails}>
-                  <ThemedText style={styles.taskTitle}>{task.title}</ThemedText>
-                  <ThemedText style={styles.taskTime}>
-                    {task.time || task.date}
-                  </ThemedText>
+                {/* Sección 2: Recompensas */}
+                <View style={styles.section}>
+                    <ThemedText style={styles.sectionTitle}>Recompensas</ThemedText>
+                    <View style={styles.rewardsCard}>
+                        <View style={styles.rewardInfo}>
+                            <MaterialCommunityIcons 
+                                name="medal-outline" 
+                                size={48} 
+                                color={Colors.primary.dark} 
+                            />
+                            <View style={styles.rewardDetails}>
+                                <ThemedText style={styles.rewardText}>
+                                    Completá 5 días seguidos para ganar una medalla
+                                </ThemedText>
+                                <ThemedText style={styles.streakText}>
+                                    3 días consecutivos
+                                </ThemedText>
+                            </View>
+                        </View>
+                    </View>
                 </View>
-              </View>
-              {!task.completed && (
-                <MaterialCommunityIcons name="chevron-right" size={24} color={Colors.primary.dark} />
-              )}
-            </Pressable>
-          ))}
-        </View>
 
-        {/* Sección 3: Recompensas */}
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Recompensas</ThemedText>
-          <View style={styles.rewardsCard}>
-            <View style={styles.rewardInfo}>
-              <MaterialCommunityIcons 
-                name={mockData.rewards.unlocked ? 'medal' : 'medal-outline'} 
-                size={48} 
-                color={Colors.primary.dark} 
-              />
-              <View style={styles.rewardDetails}>
-                <ThemedText style={styles.rewardText}>{mockData.rewards.nextReward}</ThemedText>
-                <ThemedText style={styles.streakText}>
-                  {mockData.rewards.streak} días consecutivos
-                </ThemedText>
-              </View>
+                {/* Sección 3: Próxima cita */}
+                <View style={styles.section}>
+                    <ThemedText style={styles.sectionTitle}>Próxima Cita</ThemedText>
+                    <Pressable style={styles.appointmentCard} onPress={handleViewMore}>
+                        <View style={styles.appointmentInfo}>
+                            <MaterialCommunityIcons name="calendar" size={24} color={Colors.primary.dark} />
+                            <View style={styles.appointmentDetails}>
+                                <ThemedText style={styles.appointmentTitle}>
+                                    Nutricionista
+                                </ThemedText>
+                                <ThemedText style={styles.appointmentTime}>
+                                    20 de junio - 10:00 AM
+                                </ThemedText>
+                                <ThemedText style={styles.appointmentLocation}>
+                                    Clínica Central
+                                </ThemedText>
+                            </View>
+                        </View>
+                        <MaterialCommunityIcons name="chevron-right" size={24} color={Colors.primary.dark} />
+                    </Pressable>
+                </View>
+
+                {/* Sección 4: Consejos de salud */}
+                <View style={styles.section}>
+                    <ThemedText style={styles.sectionTitle}>Consejos de Salud</ThemedText>
+                    <View style={styles.tipsContainer}>
+                        <View style={styles.tipItem}>
+                            <MaterialCommunityIcons name="water" size={24} color={Colors.primary.dark} />
+                            <ThemedText style={styles.tipText}>Toma 8 vasos de agua al día</ThemedText>
+                        </View>
+                        <View style={styles.tipItem}>
+                            <MaterialCommunityIcons name="run" size={24} color={Colors.primary.dark} />
+                            <ThemedText style={styles.tipText}>Haz 30 min de ejercicio</ThemedText>
+                        </View>
+                        <View style={styles.tipItem}>
+                            <MaterialCommunityIcons name="sleep" size={24} color={Colors.primary.dark} />
+                            <ThemedText style={styles.tipText}>Duerme 8 horas</ThemedText>
+                        </View>
+                        <View style={styles.tipItem}>
+                            <MaterialCommunityIcons name="food-apple" size={24} color={Colors.primary.dark} />
+                            <ThemedText style={styles.tipText}>Come frutas y verduras</ThemedText>
+                        </View>
+                    </View>
+                </View>
             </View>
-          </View>
-        </View>
-
-        {/* Sección 4: Próxima cita */}
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Próxima Cita</ThemedText>
-          <Pressable style={styles.appointmentCard} onPress={handleViewMore}>
-            <View style={styles.appointmentInfo}>
-              <MaterialCommunityIcons name="calendar" size={24} color={Colors.primary.dark} />
-              <View style={styles.appointmentDetails}>
-                <ThemedText style={styles.appointmentTitle}>
-                  {mockData.nextAppointment.specialty}
-                </ThemedText>
-                <ThemedText style={styles.appointmentTime}>
-                  {mockData.nextAppointment.date} - {mockData.nextAppointment.time}
-                </ThemedText>
-                <ThemedText style={styles.appointmentLocation}>
-                  {mockData.nextAppointment.location}
-                </ThemedText>
-              </View>
-            </View>
-            <MaterialCommunityIcons name="chevron-right" size={24} color={Colors.primary.dark} />
-          </Pressable>
-        </View>
-
-        {/* Sección 5: Consejos de salud */}
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Consejos de Salud</ThemedText>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tipsContainer}>
-            {mockData.healthTips.map((tip) => (
-              <View key={tip.id} style={styles.tipCard}>
-                <MaterialCommunityIcons name={tip.icon} size={32} color={Colors.primary.dark} />
-                <ThemedText style={styles.tipText}>{tip.text}</ThemedText>
-              </View>
-            ))}
-          </ScrollView>
-        </View>
-      </View>
-    </ScrollView>
-  );
+        </ScrollView>
+    );
 }
 
 const styles = StyleSheet.create({
@@ -310,66 +318,23 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: Colors.neutral.dark,
   },
-  vitalScoreCard: {
+  treatmentCard: {
     backgroundColor: Colors.background.light,
     borderRadius: 12,
     padding: 20,
     borderWidth: 1,
     borderColor: Colors.primary.dark,
-    alignItems: 'center',
   },
-  vitalScoreTitle: {
-    fontSize: 18,
-    color: Colors.neutral.dark,
-    marginBottom: 8,
-  },
-  scoreContainer: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginBottom: 16,
-  },
-  score: {
-    fontSize: 48,
-    fontWeight: 'bold',
-  },
-  scoreMax: {
-    fontSize: 24,
-    color: Colors.neutral.dark,
-  },
-  progressBar: {
-    width: '100%',
-    height: 8,
-    backgroundColor: Colors.neutral.light,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  taskCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: Colors.background.light,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.primary.dark,
-  },
-  taskInfo: {
+  treatmentItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-  taskDetails: {
-    gap: 4,
-  },
-  taskTitle: {
+  treatmentText: {
     fontSize: 16,
     color: Colors.neutral.dark,
   },
-  taskTime: {
+  treatmentTime: {
     fontSize: 14,
     color: Colors.neutral.medium,
   },
@@ -433,15 +398,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
   },
-  tipCard: {
-    backgroundColor: Colors.background.light,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.primary.dark,
+  tipItem: {
+    flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    width: 160,
   },
   tipText: {
     fontSize: 14,

@@ -2,12 +2,18 @@ import { UsuariosPort } from "../domain/UsuariosPort";
 import { Usuarios } from "../domain/Usuarios";
 import bcrypt from 'bcryptjs';
 import { AuthService } from './AuthService';
+import { PacientesAdapter } from '../infraestructure/adapter/PacientesAdapter';
+import { MedicoAdapter } from '../infraestructure/adapter/MedicoAdapter';
 
 export class UsuariosApplicationService {
     private readonly usuariosPort: UsuariosPort;
+    private readonly pacientesAdapter: PacientesAdapter;
+    private readonly medicoAdapter: MedicoAdapter;
 
-    constructor(usuariosPort: UsuariosPort) {
+    constructor(usuariosPort: UsuariosPort, pacientesAdapter: PacientesAdapter, medicoAdapter: MedicoAdapter) {
         this.usuariosPort = usuariosPort;
+        this.pacientesAdapter = pacientesAdapter;
+        this.medicoAdapter = medicoAdapter;
     }
 
      //Login 
@@ -82,5 +88,23 @@ export class UsuariosApplicationService {
             throw new Error("El usuario no existe");
         }
         return await this.usuariosPort.deleteUsuario(id);
+    }
+
+    async createPacienteProfile(usuarioId: number, profileData: { puntos: number, id_eps: number }): Promise<number> {
+        const pacienteData = {
+            usuario: usuarioId,
+            puntos: profileData.puntos,
+            id_eps: profileData.id_eps
+        };
+        return await this.pacientesAdapter.createPaciente(pacienteData);
+    }
+
+    async createMedicoProfile(usuarioId: number, profileData: { especialidad: string, eps: number }): Promise<number> {
+        const medicoData = {
+            usuario: usuarioId,
+            especialidad: profileData.especialidad,
+            eps: profileData.eps
+        };
+        return await this.medicoAdapter.createMedico(medicoData);
     }
 } 

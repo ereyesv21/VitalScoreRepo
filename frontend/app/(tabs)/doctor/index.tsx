@@ -1,254 +1,221 @@
-import { View, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, Pressable, Alert, RefreshControl } from 'react-native';
+import { useState, useEffect } from 'react';
 import { ThemedText } from '../../../components/ThemedText';
 import { Colors } from '../../../constants/Colors';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-
-// Datos mock para simular la información
-const mockData = {
-  activePatients: 12,
-  patients: [
-    {
-      id: 1,
-      name: 'Juan Pérez',
-      vitalScore: 85,
-      lastActivity: 'Hace 2 horas',
-      riskLevel: 'low',
-    },
-    {
-      id: 2,
-      name: 'Ana García',
-      vitalScore: 45,
-      lastActivity: 'Hace 1 día',
-      riskLevel: 'high',
-    },
-    {
-      id: 3,
-      name: 'Carlos López',
-      vitalScore: 72,
-      lastActivity: 'Hace 3 horas',
-      riskLevel: 'medium',
-    },
-  ],
-  alerts: [
-    {
-      id: 1,
-      type: 'medication',
-      message: 'Paciente Juan Pérez no registró medicación hoy',
-      time: 'Hace 2 horas',
-    },
-    {
-      id: 2,
-      type: 'vitals',
-      message: 'Riesgo alto detectado en presión arterial de Ana',
-      time: 'Hace 1 día',
-    },
-  ],
-  appointments: [
-    {
-      id: 1,
-      patientName: 'Juan Pérez',
-      specialty: 'Cardiología',
-      time: '10:00 AM',
-      location: 'Consultorio 3',
-    },
-    {
-      id: 2,
-      patientName: 'Ana García',
-      specialty: 'Nutrición',
-      time: '11:30 AM',
-      location: 'Consultorio 1',
-    },
-  ],
-  statistics: {
-    highCompliance: 8,
-    mediumCompliance: 3,
-    lowCompliance: 1,
-    averageVitalScore: 75,
-  },
-};
+import { patientService, PatientWithUser, PatientStats } from '../../../services/patients';
+import { doctorService, DoctorWithUser } from '../../../services/doctors';
+import { authService } from '../../../services/auth';
 
 export default function DoctorHome() {
-  const getRiskLevelColor = (level: string) => {
-    switch (level) {
-      case 'high':
-        return Colors.error;
-      case 'medium':
-        return Colors.warning;
-      case 'low':
-        return Colors.success;
-      default:
-        return Colors.neutral.dark;
+    const [patients, setPatients] = useState<PatientWithUser[]>([]);
+    const [stats, setStats] = useState<PatientStats | null>(null);
+    const [doctor, setDoctor] = useState<DoctorWithUser | null>(null);
+    const [user, setUser] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+
+    useEffect(() => {
+        loadData();
+    }, []);
+
+    const loadData = async () => {
+        try {
+            setLoading(true);
+            // Load all data in parallel
+            const [patientsData, statsData, doctorData, userData] = await Promise.all([
+                patientService.getAllPatients(),
+                patientService.getPatientStats(),
+                doctorService.getCurrentDoctor(),
+                authService.getCurrentUser(),
+            ]);
+            
+            setPatients(patientsData);
+            setStats(statsData);
+            setDoctor(doctorData);
+            setUser(userData);
+        } catch (error) {
+            Alert.alert(
+                'Error',
+                'No se pudo cargar la información. Verifica tu conexión.'
+            );
+            console.error('Error loading data:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const onRefresh = async () => {
+        setRefreshing(true);
+        await loadData();
+        setRefreshing(false);
+    };
+
+    const getRiskLevelColor = (level: string) => {
+        switch (level) {
+            case 'high':
+                return Colors.error;
+            case 'medium':
+                return Colors.warning;
+            case 'low':
+                return Colors.success;
+            default:
+                return Colors.neutral.dark;
+        }
+    };
+
+    const handleViewMore = (type: string) => {
+        Alert.alert('Ver más', `Aquí verás más detalles sobre ${type}`);
+    };
+
+    if (loading) {
+        return (
+            <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+                <MaterialCommunityIcons name="loading" size={48} color={Colors.primary.dark} />
+                <ThemedText style={{ marginTop: 16, fontSize: 16 }}>Cargando...</ThemedText>
+            </View>
+        );
     }
-  };
 
-  const handleViewMore = (type: string) => {
-    Alert.alert('Ver más', `Aquí verás más detalles sobre ${type}`);
-  };
+    const displayName = user?.nombre && user?.apellido 
+        ? `${user.nombre} ${user.apellido}`
+        : doctor?.usuario_data?.nombre && doctor?.usuario_data?.apellido
+        ? `${doctor.usuario_data.nombre} ${doctor.usuario_data.apellido}`
+        : 'Doctor';
 
-  return (
-    <ScrollView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <LinearGradient
-          colors={[Colors.primary.dark, Colors.primary.medium]}
-          style={styles.headerGradient}
+    return (
+        <ScrollView 
+            style={styles.container}
+            refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+            }
         >
-          <View style={styles.headerTop}>
-            <View style={styles.headerLeft}>
-              <ThemedText style={styles.greeting}>Bienvenido, Dra. Ruiz</ThemedText>
-              <ThemedText style={styles.subtitle}>Panel de Control</ThemedText>
-            </View>
-            <Pressable style={styles.profileButton}>
-              <View style={styles.profileImageContainer}>
-                <MaterialCommunityIcons name="account-circle" size={40} color={Colors.text.light} />
-                <View style={styles.notificationBadge}>
-                  <ThemedText style={styles.notificationText}>3</ThemedText>
-                </View>
-              </View>
-            </Pressable>
-          </View>
-          <View style={styles.headerStats}>
-            <View style={styles.statItem}>
-              <MaterialCommunityIcons name="account-group" size={24} color={Colors.text.light} />
-              <View style={styles.statInfo}>
-                <ThemedText style={styles.statValue}>{mockData.activePatients}</ThemedText>
-                <ThemedText style={styles.statLabel}>Pacientes</ThemedText>
-              </View>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <MaterialCommunityIcons name="calendar-clock" size={24} color={Colors.text.light} />
-              <View style={styles.statInfo}>
-                <ThemedText style={styles.statValue}>{mockData.appointments.length}</ThemedText>
-                <ThemedText style={styles.statLabel}>Citas hoy</ThemedText>
-              </View>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statItem}>
-              <MaterialCommunityIcons name="alert" size={24} color={Colors.text.light} />
-              <View style={styles.statInfo}>
-                <ThemedText style={styles.statValue}>{mockData.alerts.length}</ThemedText>
-                <ThemedText style={styles.statLabel}>Alertas</ThemedText>
-              </View>
-            </View>
-          </View>
-        </LinearGradient>
-      </View>
+            {/* Header */}
+            <View style={styles.header}>
+                <LinearGradient
+                    colors={[Colors.primary.dark, Colors.primary.medium]}
+                    style={styles.headerGradient}
+                >
+                    <View style={styles.headerTop}>
+                        <View style={styles.headerLeft}>
+                            <ThemedText style={styles.greeting}>
+                                Bienvenido, {displayName}
+                            </ThemedText>
+                            <ThemedText style={styles.subtitle}>Panel de Control</ThemedText>
+                        </View>
+                        <Pressable style={styles.profileButton}>
+                            <View style={styles.profileImageContainer}>
+                                <MaterialCommunityIcons name="account-circle" size={40} color={Colors.text.light} />
+                                <View style={styles.notificationBadge}>
+                                    <ThemedText style={styles.notificationText}>3</ThemedText>
+                                </View>
+                            </View>
+                        </Pressable>
+                    </View>
 
-      <View style={styles.content}>
-        {/* Sección 1: Estado general de pacientes */}
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Estado de Pacientes</ThemedText>
-          {mockData.patients.map((patient) => (
-            <View key={patient.id} style={styles.patientCard}>
-              <View style={styles.patientInfo}>
-                <MaterialCommunityIcons name="account" size={24} color={Colors.primary.dark} />
-                <View style={styles.patientDetails}>
-                  <ThemedText style={styles.patientName}>{patient.name}</ThemedText>
-                  <ThemedText style={styles.lastActivity}>
-                    Última actividad: {patient.lastActivity}
-                  </ThemedText>
-                </View>
-              </View>
-              <View style={styles.patientStats}>
-                <View style={styles.vitalScoreContainer}>
-                  <ThemedText style={styles.vitalScoreLabel}>VitalScore</ThemedText>
-                  <ThemedText 
-                    style={[
-                      styles.vitalScore, 
-                      { color: getRiskLevelColor(patient.riskLevel) }
-                    ]}
-                  >
-                    {patient.vitalScore}
-                  </ThemedText>
-                </View>
-                <MaterialCommunityIcons 
-                  name="alert-circle" 
-                  size={24} 
-                  color={getRiskLevelColor(patient.riskLevel)} 
-                />
-              </View>
+                    {/* Header Stats */}
+                    <View style={styles.headerStats}>
+                        <View style={styles.statItem}>
+                            <MaterialCommunityIcons name="account-group" size={24} color={Colors.text.light} />
+                            <View style={styles.statInfo}>
+                                <ThemedText style={styles.statValue}>{patients.length}</ThemedText>
+                                <ThemedText style={styles.statLabel}>Pacientes</ThemedText>
+                            </View>
+                        </View>
+                        <View style={styles.statDivider} />
+                        <View style={styles.statItem}>
+                            <MaterialCommunityIcons name="heart-pulse" size={24} color={Colors.text.light} />
+                            <View style={styles.statInfo}>
+                                <ThemedText style={styles.statValue}>
+                                    {stats?.averageVitalScore || 0}
+                                </ThemedText>
+                                <ThemedText style={styles.statLabel}>VitalScore Promedio</ThemedText>
+                            </View>
+                        </View>
+                    </View>
+                </LinearGradient>
             </View>
-          ))}
-        </View>
 
-        {/* Sección 2: Alertas recientes */}
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Alertas Recientes</ThemedText>
-          {mockData.alerts.map((alert) => (
-            <View key={alert.id} style={styles.alertCard}>
-              <MaterialCommunityIcons 
-                name={alert.type === 'medication' ? 'pill' : 'heart-pulse'} 
-                size={24} 
-                color={Colors.primary.dark} 
-              />
-              <View style={styles.alertDetails}>
-                <ThemedText style={styles.alertMessage}>{alert.message}</ThemedText>
-                <ThemedText style={styles.alertTime}>{alert.time}</ThemedText>
-              </View>
-              <Pressable onPress={() => handleViewMore('alerta')}>
-                <MaterialCommunityIcons name="chevron-right" size={24} color={Colors.primary.dark} />
-              </Pressable>
-            </View>
-          ))}
-        </View>
-
-        {/* Sección 3: Próximas citas */}
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Próximas Citas</ThemedText>
-          {mockData.appointments.map((appointment) => (
-            <View key={appointment.id} style={styles.appointmentCard}>
-              <View style={styles.appointmentInfo}>
-                <MaterialCommunityIcons name="calendar" size={24} color={Colors.primary.dark} />
-                <View style={styles.appointmentDetails}>
-                  <ThemedText style={styles.appointmentPatient}>
-                    {appointment.patientName}
-                  </ThemedText>
-                  <ThemedText style={styles.appointmentSpecialty}>
-                    {appointment.specialty}
-                  </ThemedText>
-                  <ThemedText style={styles.appointmentTime}>
-                    {appointment.time} - {appointment.location}
-                  </ThemedText>
+            <View style={styles.content}>
+                {/* Sección 1: Estado general de pacientes */}
+                <View style={styles.section}>
+                    <ThemedText style={styles.sectionTitle}>Estado de Pacientes</ThemedText>
+                    {patients.length > 0 ? (
+                        patients.map((patient) => (
+                            <View key={patient.id_paciente} style={styles.patientCard}>
+                                <View style={styles.patientInfo}>
+                                    <MaterialCommunityIcons name="account" size={24} color={Colors.primary.dark} />
+                                    <View style={styles.patientDetails}>
+                                        <ThemedText style={styles.patientName}>
+                                            {patient.usuario_data ? `${patient.usuario_data.nombre} ${patient.usuario_data.apellido}` : 'Paciente'}
+                                        </ThemedText>
+                                        <ThemedText style={styles.lastActivity}>
+                                            Última actividad: {patient.lastActivity || 'No disponible'}
+                                        </ThemedText>
+                                    </View>
+                                </View>
+                                <View style={styles.patientStats}>
+                                    <View style={styles.vitalScoreContainer}>
+                                        <ThemedText style={styles.vitalScoreLabel}>VitalScore</ThemedText>
+                                        <ThemedText 
+                                            style={[
+                                                styles.vitalScore, 
+                                                { color: getRiskLevelColor(patient.riskLevel || 'medium') }
+                                            ]}
+                                        >
+                                            {patient.vitalScore || patient.puntos || 0}
+                                        </ThemedText>
+                                    </View>
+                                    <MaterialCommunityIcons 
+                                        name="alert-circle" 
+                                        size={24} 
+                                        color={getRiskLevelColor(patient.riskLevel || 'medium')} 
+                                    />
+                                </View>
+                            </View>
+                        ))
+                    ) : (
+                        <View style={styles.emptyState}>
+                            <MaterialCommunityIcons name="account-group-outline" size={48} color={Colors.neutral.medium} />
+                            <ThemedText style={styles.emptyStateText}>
+                                No hay pacientes asignados aún
+                            </ThemedText>
+                        </View>
+                    )}
                 </View>
-              </View>
-              <Pressable onPress={() => handleViewMore('cita')}>
-                <MaterialCommunityIcons name="chevron-right" size={24} color={Colors.primary.dark} />
-              </Pressable>
-            </View>
-          ))}
-        </View>
 
-        {/* Sección 4: Estadísticas */}
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Estadísticas</ThemedText>
-          <View style={styles.statsCard}>
-            <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <ThemedText style={styles.statValue}>{mockData.statistics.highCompliance}</ThemedText>
-                <ThemedText style={styles.statLabel}>Alto cumplimiento</ThemedText>
-              </View>
-              <View style={styles.statItem}>
-                <ThemedText style={styles.statValue}>{mockData.statistics.mediumCompliance}</ThemedText>
-                <ThemedText style={styles.statLabel}>Medio cumplimiento</ThemedText>
-              </View>
-              <View style={styles.statItem}>
-                <ThemedText style={styles.statValue}>{mockData.statistics.lowCompliance}</ThemedText>
-                <ThemedText style={styles.statLabel}>Bajo cumplimiento</ThemedText>
-              </View>
+                {/* Sección 2: Estadísticas */}
+                {stats && (
+                    <View style={styles.section}>
+                        <ThemedText style={styles.sectionTitle}>Estadísticas</ThemedText>
+                        <View style={styles.statsCard}>
+                            <View style={styles.statsRow}>
+                                <View style={styles.statItem}>
+                                    <ThemedText style={styles.statValue}>{stats.highCompliance}</ThemedText>
+                                    <ThemedText style={styles.statLabel}>Alto cumplimiento</ThemedText>
+                                </View>
+                                <View style={styles.statItem}>
+                                    <ThemedText style={styles.statValue}>{stats.mediumCompliance}</ThemedText>
+                                    <ThemedText style={styles.statLabel}>Medio cumplimiento</ThemedText>
+                                </View>
+                                <View style={styles.statItem}>
+                                    <ThemedText style={styles.statValue}>{stats.lowCompliance}</ThemedText>
+                                    <ThemedText style={styles.statLabel}>Bajo cumplimiento</ThemedText>
+                                </View>
+                            </View>
+                            <View style={styles.averageScore}>
+                                <ThemedText style={styles.averageScoreLabel}>Promedio VitalScore</ThemedText>
+                                <ThemedText style={styles.averageScoreValue}>
+                                    {stats.averageVitalScore}
+                                </ThemedText>
+                            </View>
+                        </View>
+                    </View>
+                )}
             </View>
-            <View style={styles.averageScore}>
-              <ThemedText style={styles.averageScoreLabel}>Promedio VitalScore</ThemedText>
-              <ThemedText style={styles.averageScoreValue}>
-                {mockData.statistics.averageVitalScore}
-              </ThemedText>
-            </View>
-          </View>
-        </View>
-      </View>
-    </ScrollView>
-  );
+        </ScrollView>
+    );
 }
 
 const styles = StyleSheet.create({
@@ -392,59 +359,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  alertCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.background.light,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.primary.dark,
-    gap: 12,
-  },
-  alertDetails: {
-    flex: 1,
-    gap: 4,
-  },
-  alertMessage: {
-    fontSize: 16,
-    color: Colors.neutral.dark,
-  },
-  alertTime: {
-    fontSize: 14,
-    color: Colors.neutral.medium,
-  },
-  appointmentCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: Colors.background.light,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.primary.dark,
-  },
-  appointmentInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  appointmentDetails: {
-    gap: 4,
-  },
-  appointmentPatient: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: Colors.neutral.dark,
-  },
-  appointmentSpecialty: {
-    fontSize: 14,
-    color: Colors.neutral.dark,
-  },
-  appointmentTime: {
-    fontSize: 14,
-    color: Colors.neutral.medium,
-  },
   statsCard: {
     backgroundColor: Colors.background.light,
     borderRadius: 12,
@@ -472,5 +386,15 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: 'bold',
     color: Colors.primary.dark,
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyStateText: {
+    fontSize: 16,
+    color: Colors.neutral.medium,
+    marginTop: 16,
   },
 }); 

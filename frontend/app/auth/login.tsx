@@ -1,96 +1,129 @@
-import { View, StyleSheet, TextInput, Pressable, KeyboardAvoidingView, Platform, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
-import { ThemedText } from '../../components/ThemedText';
-import { Colors } from '../../constants/Colors';
+import { View, StyleSheet, TextInput, TouchableOpacity, Alert } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Colors } from '../../constants/Colors';
+import { ThemedText } from '../../components/ThemedText';
+import { LinearGradient } from 'expo-linear-gradient';
+import { authService } from '../../services/auth';
+import { router } from 'expo-router';
 import { useState } from 'react';
 
-export default function Login() {
-  const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+export default function LoginScreen() {
+    const [correo, setCorreo] = useState('');
+    const [contraseña, setContraseña] = useState('');
+    const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
-    // Credenciales de prueba
-    if (email === 'paciente@paciente.com' && password === 'Paciente1234*') {
-      router.push('/(tabs)/patient');
-    } else if (email === 'medico@medico.com' && password === 'Medico1234*') {
-      router.push('/(tabs)/doctor');
-    } else {
-      Alert.alert(
-        'Error de autenticación',
-        'Las credenciales proporcionadas no son válidas. Por favor, intenta de nuevo.'
-      );
-    }
-  };
+    const handleLogin = async () => {
+        if (!correo || !contraseña) {
+            Alert.alert('Error', 'Por favor ingresa correo y contraseña');
+            return;
+        }
 
-  return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <View style={styles.header}>
-        <ThemedText style={styles.title}>Iniciar Sesión</ThemedText>
-        <ThemedText style={styles.subtitle}>Ingresa tus credenciales para continuar</ThemedText>
-      </View>
+        try {
+            setLoading(true);
+            console.log('🔄 Attempting login with:', { correo, contraseña });
+            
+            const response = await authService.login({ correo, contraseña });
+            console.log('✅ Login successful:', response);
+            
+            // Navigate based on user role
+            if (response.rol === 'medico') {
+                console.log('👨‍⚕️ Navigating to doctor dashboard');
+                router.replace('/(tabs)/doctor');
+            } else if (response.rol === 'paciente') {
+                console.log('👤 Navigating to patient dashboard');
+                router.replace('/(tabs)/patient');
+            } else {
+                console.log('❌ Invalid role:', response.rol);
+                Alert.alert('Error', 'Rol de usuario no válido');
+            }
+        } catch (error) {
+            console.error('❌ Login error:', error);
+            Alert.alert(
+                'Error de inicio de sesión',
+                error instanceof Error ? error.message : 'Error al iniciar sesión'
+            );
+        } finally {
+            setLoading(false);
+        }
+    };
 
-      <View style={styles.form}>
-        <View style={styles.inputContainer}>
-          <MaterialCommunityIcons name="email" size={24} color={Colors.primary.dark} />
-          <TextInput
-            style={styles.input}
-            placeholder="Correo electrónico"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
+    return (
+        <View style={styles.container}>
+            <View style={styles.header}>
+                <ThemedText style={styles.title}>VitalScore</ThemedText>
+                <ThemedText style={styles.subtitle}>
+                    Inicia sesión para continuar
+                </ThemedText>
+            </View>
+
+            <View style={styles.form}>
+                <View style={styles.inputContainer}>
+                    <MaterialCommunityIcons name="email" size={24} color={Colors.primary.dark} />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Correo electrónico"
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        value={correo}
+                        onChangeText={setCorreo}
+                    />
+                </View>
+
+                <View style={styles.inputContainer}>
+                    <MaterialCommunityIcons name="lock" size={24} color={Colors.primary.dark} />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Contraseña"
+                        secureTextEntry
+                        value={contraseña}
+                        onChangeText={setContraseña}
+                    />
+                </View>
+
+                <TouchableOpacity style={styles.forgotPassword}>
+                    <ThemedText style={styles.forgotPasswordText}>
+                        ¿Olvidaste tu contraseña?
+                    </ThemedText>
+                </TouchableOpacity>
+
+                <TouchableOpacity 
+                    onPress={handleLogin}
+                    disabled={loading}
+                >
+                    <LinearGradient
+                        colors={[Colors.primary.dark, Colors.primary.medium]}
+                        style={styles.button}
+                    >
+                        <ThemedText style={styles.buttonText}>
+                            {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
+                        </ThemedText>
+                    </LinearGradient>
+                </TouchableOpacity>
+
+                {/* Register Link */}
+                <View style={styles.registerContainer}>
+                    <ThemedText style={styles.registerText}>¿No tienes una cuenta? </ThemedText>
+                    <TouchableOpacity onPress={() => router.push('/auth/register')}>
+                        <ThemedText style={[styles.registerText, { color: Colors.primary.dark }]}>
+                            Regístrate
+                        </ThemedText>
+                    </TouchableOpacity>
+                </View>
+            </View>
+
+            <View style={styles.testCredentials}>
+                <ThemedText style={styles.testCredentialsTitle}>
+                    Credenciales de prueba
+                </ThemedText>
+                <ThemedText style={styles.testCredentialsText}>
+                    Doctor: medico@test.com / password
+                </ThemedText>
+                <ThemedText style={styles.testCredentialsText}>
+                    Paciente: paciente@test.com / password
+                </ThemedText>
+            </View>
         </View>
-
-        <View style={styles.inputContainer}>
-          <MaterialCommunityIcons name="lock" size={24} color={Colors.primary.dark} />
-          <TextInput
-            style={styles.input}
-            placeholder="Contraseña"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-        </View>
-
-        <Pressable 
-          style={styles.forgotPassword}
-          onPress={() => router.push('/auth/forgot-password')}
-        >
-          <ThemedText style={styles.forgotPasswordText}>
-            ¿Olvidaste tu contraseña?
-          </ThemedText>
-        </Pressable>
-
-        <Pressable 
-          style={[styles.button, { backgroundColor: Colors.primary.dark }]}
-          onPress={handleLogin}
-        >
-          <ThemedText style={styles.buttonText}>Iniciar Sesión</ThemedText>
-        </Pressable>
-
-        <View style={styles.registerContainer}>
-          <ThemedText style={styles.registerText}>¿No tienes una cuenta? </ThemedText>
-          <Pressable onPress={() => router.push('/auth/register')}>
-            <ThemedText style={[styles.registerText, { color: Colors.primary.dark }]}>
-              Regístrate
-            </ThemedText>
-          </Pressable>
-        </View>
-
-        <View style={styles.testCredentials}>
-          <ThemedText style={styles.testCredentialsTitle}>Credenciales de prueba:</ThemedText>
-          <ThemedText style={styles.testCredentialsText}>Paciente: paciente@paciente.com / Paciente1234*</ThemedText>
-          <ThemedText style={styles.testCredentialsText}>Médico: medico@medico.com / Medico1234*</ThemedText>
-        </View>
-      </View>
-    </KeyboardAvoidingView>
-  );
+    );
 }
 
 const styles = StyleSheet.create({
@@ -151,15 +184,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  registerContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 20,
-  },
-  registerText: {
-    fontSize: 16,
-    color: Colors.neutral.dark,
-  },
   testCredentials: {
     marginTop: 40,
     padding: 16,
@@ -178,5 +202,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.neutral.dark,
     marginBottom: 4,
+  },
+  registerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  registerText: {
+    fontSize: 14,
+    color: Colors.neutral.dark,
   },
 }); 
