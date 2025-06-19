@@ -11,6 +11,7 @@ import archivosRoutes from '../routes/ArchivosRoutes';
 import administradoresRoutes from '../routes/AdministradoresRoutes';
 import recompensasRoutes from '../routes/RecompensasRoutes';
 import canjesRoutes from '../routes/CanjesRoutes';
+import notificacionesRoutes from '../routes/NotificacionesRoutes';
 
 class app{
     //declarar atributos 
@@ -39,6 +40,7 @@ class app{
         this.app.use("/api", administradoresRoutes);
         this.app.use("/api", recompensasRoutes);
         this.app.use("/api", canjesRoutes);
+        this.app.use("/api", notificacionesRoutes);
 
     }
 
