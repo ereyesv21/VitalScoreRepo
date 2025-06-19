@@ -3,7 +3,14 @@ import usuariosRoutes from '../routes/UsuariosRoutes';
 import epsRoutes from '../routes/EpsRoutes';
 import medicoRoutes from '../routes/MedicoRoutes';
 import pacientesRoutes from '../routes/PacientesRoutes';
-
+import planRoutes from '../routes/PlanesRoutes';
+import tareasRoutes from '../routes/TareasRoutes';
+import historialPuntosRoutes from '../routes/HistorialPuntosRoutes';
+import pacientesMedicosRoutes from '../routes/PacientMedicosRoutes';
+import archivosRoutes from '../routes/ArchivosRoutes';
+import administradoresRoutes from '../routes/AdministradoresRoutes';
+import recompensasRoutes from '../routes/RecompensasRoutes';
+import canjesRoutes from '../routes/CanjesRoutes';
 
 class app{
     //declarar atributos 
@@ -24,6 +31,14 @@ class app{
         this.app.use("/api", epsRoutes);
         this.app.use("/api", medicoRoutes);
         this.app.use("/api", pacientesRoutes);
+        this.app.use("/api", planRoutes);
+        this.app.use("/api", tareasRoutes);
+        this.app.use("/api", historialPuntosRoutes);
+        this.app.use("/api", pacientesMedicosRoutes);
+        this.app.use("/api", archivosRoutes);
+        this.app.use("/api", administradoresRoutes);
+        this.app.use("/api", recompensasRoutes);
+        this.app.use("/api", canjesRoutes);
 
     }
 

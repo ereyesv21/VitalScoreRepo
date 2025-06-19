@@ -5,6 +5,15 @@ import { EPS } from '../entities/Eps';
 import { Rol } from '../entities/Rol';
 import { Medico } from '../entities/Medico';
 import { Paciente } from '../entities/Pacientes';
+import { Plan } from '../entities/Planes';
+import { HistorialPunto } from '../entities/HistorialPuntos';
+import { Tarea } from '../entities/Tareas';
+import { Pacientes_Medicos } from '../entities/PacientMedicos';
+import { Archivo } from '../entities/Archivos';
+import { Administrador } from '../entities/Administradores';
+import { Recompensa } from '../entities/Recompensas';
+import { Canje } from '../entities/Canjes';
+
 
 dotenv.config();
 export const AppDataSource = new DataSource({
@@ -17,7 +26,7 @@ export const AppDataSource = new DataSource({
     schema: process.env.DB_SCHEMA,
     synchronize: false,
     logging: true,
-    entities: [Usuario, EPS, Rol, Medico, Paciente],
+    entities: [Usuario, EPS, Rol, Medico, Paciente, Plan, HistorialPunto, Tarea, Pacientes_Medicos, Archivo, Administrador, Recompensa, Canje],
 });
 
 //conectar a la base de datos
