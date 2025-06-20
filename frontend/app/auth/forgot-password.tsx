@@ -1,59 +1,146 @@
-import { View, StyleSheet, TextInput, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
-import { ThemedText } from '../../components/ThemedText';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  ActivityIndicator,
+} from 'react-native';
+import { router } from 'expo-router';
 import { Colors } from '../../constants/Colors';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { api } from '../../services/api';
 
-export default function ForgotPassword() {
-  const router = useRouter();
+export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
 
-  const handleResetPassword = () => {
-    // Aquí irá la lógica de recuperación de contraseña cuando tengamos el backend
+  const handleSendResetEmail = async () => {
+    if (!email) {
+      Alert.alert('Error', 'Por favor ingresa tu correo electrónico');
+      return;
+    }
+
+    // Validación básica de email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Alert.alert('Error', 'Por favor ingresa un correo electrónico válido');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Aquí iría la llamada al endpoint de recuperación de contraseña
+      // await api.post('/forgot-password', { correo: email });
+      
+      // Simulación de envío exitoso
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      setEmailSent(true);
+      Alert.alert(
+        'Correo enviado',
+        'Se ha enviado un enlace de recuperación a tu correo electrónico.',
+        [
+          {
+            text: 'OK',
+            onPress: () => router.push('/auth/login'),
+          },
+        ]
+      );
+    } catch (error: any) {
+      Alert.alert(
+        'Error',
+        error.message || 'No se pudo enviar el correo de recuperación'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBackToLogin = () => {
     router.push('/auth/login');
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <KeyboardAvoidingView
       style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <View style={styles.header}>
-        <ThemedText style={styles.title}>Recuperar Contraseña</ThemedText>
-        <ThemedText style={styles.subtitle}>
-          Ingresa tu correo electrónico y te enviaremos instrucciones para recuperar tu contraseña
-        </ThemedText>
-      </View>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <View style={styles.content}>
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.title}>VitalScore</Text>
+            <Text style={styles.subtitle}>Recupera tu contraseña</Text>
+          </View>
 
-      <View style={styles.form}>
-        <View style={styles.inputContainer}>
-          <MaterialCommunityIcons name="email" size={24} color={Colors.primary.dark} />
-          <TextInput
-            style={styles.input}
-            placeholder="Correo electrónico"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
+          {/* Form */}
+          <View style={styles.form}>
+            <Text style={styles.formTitle}>¿Olvidaste tu contraseña?</Text>
+            
+            <Text style={styles.description}>
+              No te preocupes, ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.
+            </Text>
+
+            {/* Email Input */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Correo electrónico</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="ejemplo@correo.com"
+                placeholderTextColor={Colors.grey[400]}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!emailSent}
+              />
+            </View>
+
+            {/* Send Button */}
+            <TouchableOpacity
+              style={[styles.sendButton, loading && styles.sendButtonDisabled]}
+              onPress={handleSendResetEmail}
+              disabled={loading || emailSent}
+            >
+              {loading ? (
+                <ActivityIndicator color={Colors.primary.contrast} />
+              ) : (
+                <Text style={styles.sendButtonText}>
+                  {emailSent ? 'Correo enviado' : 'Enviar correo de recuperación'}
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            {/* Back to Login */}
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={handleBackToLogin}
+            >
+              <Text style={styles.backButtonText}>
+                ← Volver al inicio de sesión
+              </Text>
+            </TouchableOpacity>
+
+            {/* Additional Help */}
+            <View style={styles.helpContainer}>
+              <Text style={styles.helpTitle}>¿Necesitas ayuda?</Text>
+              <Text style={styles.helpText}>
+                Si tienes problemas para acceder a tu cuenta, contacta con nuestro equipo de soporte.
+              </Text>
+              <TouchableOpacity style={styles.contactButton}>
+                <Text style={styles.contactButtonText}>Contactar soporte</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-
-        <Pressable 
-          style={[styles.button, { backgroundColor: Colors.primary.dark }]}
-          onPress={handleResetPassword}
-        >
-          <ThemedText style={styles.buttonText}>Enviar Instrucciones</ThemedText>
-        </Pressable>
-
-        <View style={styles.backContainer}>
-          <Pressable onPress={() => router.back()}>
-            <ThemedText style={[styles.backText, { color: Colors.primary.dark }]}>
-              Volver al inicio de sesión
-            </ThemedText>
-          </Pressable>
-        </View>
-      </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -61,60 +148,129 @@ export default function ForgotPassword() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: Colors.background.light,
+    backgroundColor: Colors.grey[50],
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
+  content: {
+    paddingHorizontal: 24,
+    paddingVertical: 40,
   },
   header: {
-    marginTop: 60,
-    marginBottom: 40,
     alignItems: 'center',
+    marginBottom: 48,
   },
   title: {
-    fontSize: 28,
+    fontSize: 32,
     fontWeight: 'bold',
-    color: Colors.primary.dark,
-    marginBottom: 10,
+    color: Colors.primary.main,
+    marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: Colors.neutral.dark,
+    color: Colors.grey[600],
     textAlign: 'center',
-    paddingHorizontal: 20,
   },
   form: {
-    gap: 20,
+    backgroundColor: Colors.light.background,
+    borderRadius: 16,
+    padding: 24,
+    shadowColor: Colors.grey[900],
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  formTitle: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: Colors.grey[800],
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  description: {
+    fontSize: 14,
+    color: Colors.grey[600],
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 32,
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.primary.dark,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    height: 56,
+    marginBottom: 24,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.grey[700],
+    marginBottom: 8,
   },
   input: {
-    flex: 1,
-    marginLeft: 12,
+    borderWidth: 1,
+    borderColor: Colors.grey[300],
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     fontSize: 16,
+    color: Colors.grey[800],
+    backgroundColor: Colors.grey[50],
   },
-  button: {
-    height: 56,
-    borderRadius: 12,
-    justifyContent: 'center',
+  sendButton: {
+    backgroundColor: Colors.primary.main,
+    borderRadius: 8,
+    paddingVertical: 16,
     alignItems: 'center',
-    marginTop: 20,
+    marginBottom: 16,
   },
-  buttonText: {
-    color: Colors.text.light,
-    fontSize: 18,
-    fontWeight: 'bold',
+  sendButtonDisabled: {
+    backgroundColor: Colors.grey[400],
   },
-  backContainer: {
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  backText: {
+  sendButtonText: {
+    color: Colors.primary.contrast,
     fontSize: 16,
+    fontWeight: '600',
+  },
+  backButton: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  backButtonText: {
+    color: Colors.primary.main,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  helpContainer: {
+    borderTopWidth: 1,
+    borderTopColor: Colors.grey[200],
+    paddingTop: 24,
+  },
+  helpTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: Colors.grey[800],
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  helpText: {
+    fontSize: 14,
+    color: Colors.grey[600],
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  contactButton: {
+    backgroundColor: Colors.grey[100],
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  contactButtonText: {
+    color: Colors.grey[700],
+    fontSize: 14,
+    fontWeight: '500',
   },
 }); 

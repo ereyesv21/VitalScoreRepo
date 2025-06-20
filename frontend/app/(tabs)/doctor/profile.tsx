@@ -1,167 +1,177 @@
-import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
-import { useRouter } from 'expo-router';
-import { ThemedText } from '../../../components/ThemedText';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Colors } from '../../../constants/Colors';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-export default function Profile() {
-  const router = useRouter();
-
-  const handleLogout = () => {
-    router.replace('/role-selection');
-  };
-
+export default function DoctorProfile() {
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.profileImageContainer}>
-          <MaterialCommunityIcons name="account-circle" size={80} color={Colors.text.light} />
-        </View>
-        <ThemedText style={styles.name}>Dr. Carlos Rodríguez</ThemedText>
-        <ThemedText style={styles.email}>medico@medico.com</ThemedText>
-      </View>
-
+    <View style={styles.container}>
       <View style={styles.content}>
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Información Profesional</ThemedText>
-          <View style={styles.infoCard}>
-            <View style={styles.infoRow}>
-              <MaterialCommunityIcons name="medical-bag" size={24} color={Colors.primary.dark} />
-              <ThemedText style={styles.infoText}>Especialidad: Medicina General</ThemedText>
-            </View>
-            <View style={styles.infoRow}>
-              <MaterialCommunityIcons name="phone" size={24} color={Colors.primary.dark} />
-              <ThemedText style={styles.infoText}>+52 123 456 7890</ThemedText>
-            </View>
-            <View style={styles.infoRow}>
-              <MaterialCommunityIcons name="map-marker" size={24} color={Colors.primary.dark} />
-              <ThemedText style={styles.infoText}>Ciudad de México, México</ThemedText>
-            </View>
+        <View style={styles.profileHeader}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>👨‍⚕️</Text>
+          </View>
+          <Text style={styles.name}>Dr. Carlos García</Text>
+          <Text style={styles.specialty}>Cardiólogo</Text>
+          <Text style={styles.email}>dr.garcia@clinica.com</Text>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>📋 Información Profesional</Text>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Nombre:</Text>
+            <Text style={styles.infoValue}>Carlos Alberto</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Apellido:</Text>
+            <Text style={styles.infoValue}>García López</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Especialidad:</Text>
+            <Text style={styles.infoValue}>Cardiología</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>EPS:</Text>
+            <Text style={styles.infoValue}>Sura</Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Género:</Text>
+            <Text style={styles.infoValue}>Masculino</Text>
           </View>
         </View>
 
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Configuración</ThemedText>
-          <View style={styles.menuCard}>
-            <Pressable style={styles.menuItem}>
-              <MaterialCommunityIcons name="account-edit" size={24} color={Colors.primary.dark} />
-              <ThemedText style={styles.menuText}>Editar Perfil</ThemedText>
-              <MaterialCommunityIcons name="chevron-right" size={24} color={Colors.primary.dark} />
-            </Pressable>
-            <Pressable style={styles.menuItem}>
-              <MaterialCommunityIcons name="bell" size={24} color={Colors.primary.dark} />
-              <ThemedText style={styles.menuText}>Notificaciones</ThemedText>
-              <MaterialCommunityIcons name="chevron-right" size={24} color={Colors.primary.dark} />
-            </Pressable>
-            <Pressable style={styles.menuItem}>
-              <MaterialCommunityIcons name="shield-lock" size={24} color={Colors.primary.dark} />
-              <ThemedText style={styles.menuText}>Seguridad</ThemedText>
-              <MaterialCommunityIcons name="chevron-right" size={24} color={Colors.primary.dark} />
-            </Pressable>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>📊 Estadísticas Médicas</Text>
+          <View style={styles.statsRow}>
+            <Text style={styles.statsLabel}>Pacientes activos:</Text>
+            <Text style={styles.statsValue}>24</Text>
+          </View>
+          <View style={styles.statsRow}>
+            <Text style={styles.statsLabel}>Citas este mes:</Text>
+            <Text style={styles.statsValue}>156</Text>
+          </View>
+          <View style={styles.statsRow}>
+            <Text style={styles.statsLabel}>Promedio VitalScore:</Text>
+            <Text style={styles.statsValue}>1,420</Text>
+          </View>
+          <View style={styles.statsRow}>
+            <Text style={styles.statsLabel}>Tareas asignadas:</Text>
+            <Text style={styles.statsValue}>89</Text>
           </View>
         </View>
 
-        <Pressable style={styles.logoutButton} onPress={handleLogout}>
-          <MaterialCommunityIcons name="logout" size={24} color={Colors.text.light} />
-          <ThemedText style={styles.logoutText}>Cerrar Sesión</ThemedText>
-        </Pressable>
+        <TouchableOpacity style={styles.editButton}>
+          <Text style={styles.editButtonText}>Editar Perfil</Text>
+        </TouchableOpacity>
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.light,
+    backgroundColor: Colors.grey[50],
   },
-  header: {
+  content: {
+    flex: 1,
     padding: 20,
-    backgroundColor: Colors.primary.dark,
-    alignItems: 'center',
+    paddingTop: 40,
   },
-  profileImageContainer: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  profileHeader: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: Colors.primary.main,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
   },
+  avatarText: {
+    fontSize: 40,
+  },
   name: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: Colors.text.light,
+    color: Colors.grey[800],
+    marginBottom: 4,
+  },
+  specialty: {
+    fontSize: 18,
+    color: Colors.primary.main,
+    fontWeight: '600',
     marginBottom: 4,
   },
   email: {
     fontSize: 16,
-    color: Colors.text.light,
-    opacity: 0.8,
+    color: Colors.grey[600],
   },
-  content: {
-    padding: 20,
-    gap: 24,
-  },
-  section: {
-    gap: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: Colors.neutral.dark,
-  },
-  infoCard: {
-    backgroundColor: Colors.background.light,
+  card: {
+    backgroundColor: Colors.light.background,
     borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: Colors.primary.dark,
-    gap: 16,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: Colors.grey[900],
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.grey[800],
+    marginBottom: 16,
   },
   infoRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  infoText: {
-    fontSize: 16,
-    color: Colors.neutral.dark,
-  },
-  menuCard: {
-    backgroundColor: Colors.background.light,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.primary.dark,
-    overflow: 'hidden',
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
+    justifyContent: 'space-between',
+    paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.primary.dark,
+    borderBottomColor: Colors.grey[200],
   },
-  menuText: {
-    flex: 1,
+  infoLabel: {
     fontSize: 16,
-    color: Colors.neutral.dark,
-    marginLeft: 12,
+    color: Colors.grey[600],
+    fontWeight: '500',
   },
-  logoutButton: {
+  infoValue: {
+    fontSize: 16,
+    color: Colors.grey[800],
+  },
+  statsRow: {
     flexDirection: 'row',
-    backgroundColor: Colors.primary.dark,
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    marginTop: 16,
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.grey[200],
   },
-  logoutText: {
-    color: Colors.text.light,
+  statsLabel: {
     fontSize: 16,
-    fontWeight: 'bold',
+    color: Colors.grey[600],
+    fontWeight: '500',
+  },
+  statsValue: {
+    fontSize: 16,
+    color: Colors.primary.main,
+    fontWeight: '600',
+  },
+  editButton: {
+    backgroundColor: Colors.primary.main,
+    borderRadius: 8,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  editButtonText: {
+    color: Colors.primary.contrast,
+    fontSize: 16,
+    fontWeight: '600',
   },
 }); 

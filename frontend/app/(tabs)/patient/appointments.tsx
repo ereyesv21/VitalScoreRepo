@@ -1,105 +1,91 @@
-import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
-import { ThemedText } from '../../../components/ThemedText';
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { Colors } from '../../../constants/Colors';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-export default function Appointments() {
+export default function PatientAppointments() {
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <ThemedText style={styles.title}>Mis Citas</ThemedText>
-        <ThemedText style={styles.subtitle}>Programa y gestiona tus citas médicas</ThemedText>
-      </View>
-
+    <View style={styles.container}>
       <View style={styles.content}>
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Próximas Citas</ThemedText>
-          <View style={styles.emptyState}>
-            <MaterialCommunityIcons name="calendar-clock" size={48} color={Colors.primary.dark} />
-            <ThemedText style={styles.emptyStateText}>
-              No tienes citas programadas
-            </ThemedText>
-          </View>
+        <Text style={styles.title}>📅 Mis Citas</Text>
+        <Text style={styles.subtitle}>Aquí verás todas tus citas médicas</Text>
+        
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Próxima Cita</Text>
+          <Text style={styles.appointmentText}>Dr. García - Cardiología</Text>
+          <Text style={styles.appointmentDate}>15 de junio, 10:00 AM</Text>
+          <Text style={styles.appointmentLocation}>Clínica Central</Text>
         </View>
 
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Historial de Citas</ThemedText>
-          <View style={styles.emptyState}>
-            <MaterialCommunityIcons name="history" size={48} color={Colors.primary.dark} />
-            <ThemedText style={styles.emptyStateText}>
-              No hay citas anteriores
-            </ThemedText>
-          </View>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Citas Anteriores</Text>
+          <Text style={styles.appointmentText}>Dr. López - Nutrición</Text>
+          <Text style={styles.appointmentDate}>1 de junio, 2:00 PM</Text>
+          <Text style={styles.appointmentStatus}>✅ Completada</Text>
         </View>
-
-        <Pressable style={styles.addButton}>
-          <MaterialCommunityIcons name="calendar-plus" size={24} color={Colors.text.light} />
-          <ThemedText style={styles.addButtonText}>Agendar Nueva Cita</ThemedText>
-        </Pressable>
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.light,
+    backgroundColor: Colors.grey[50],
   },
-  header: {
+  content: {
+    flex: 1,
     padding: 20,
-    backgroundColor: Colors.primary.dark,
+    paddingTop: 40,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: Colors.text.light,
+    color: Colors.grey[800],
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: Colors.text.light,
-    opacity: 0.8,
+    color: Colors.grey[600],
+    marginBottom: 24,
   },
-  content: {
+  card: {
+    backgroundColor: Colors.light.background,
+    borderRadius: 12,
     padding: 20,
-    gap: 24,
+    marginBottom: 16,
+    shadowColor: Colors.grey[900],
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  section: {
-    gap: 16,
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.grey[800],
+    marginBottom: 12,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: Colors.neutral.dark,
-  },
-  emptyState: {
-    backgroundColor: Colors.background.light,
-    borderRadius: 12,
-    padding: 24,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.primary.dark,
-    gap: 12,
-  },
-  emptyStateText: {
+  appointmentText: {
     fontSize: 16,
-    color: Colors.neutral.dark,
-    textAlign: 'center',
+    color: Colors.grey[700],
+    marginBottom: 4,
   },
-  addButton: {
-    flexDirection: 'row',
-    backgroundColor: Colors.primary.dark,
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    marginTop: 16,
+  appointmentDate: {
+    fontSize: 14,
+    color: Colors.grey[600],
+    marginBottom: 4,
   },
-  addButtonText: {
-    color: Colors.text.light,
-    fontSize: 16,
-    fontWeight: 'bold',
+  appointmentLocation: {
+    fontSize: 14,
+    color: Colors.primary.main,
+    fontWeight: '500',
+  },
+  appointmentStatus: {
+    fontSize: 14,
+    color: Colors.success.main,
+    fontWeight: '500',
   },
 }); 

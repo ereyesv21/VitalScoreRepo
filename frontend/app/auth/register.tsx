@@ -1,396 +1,733 @@
-import { useState } from 'react';
-import { View, StyleSheet, TextInput, TouchableOpacity, Alert, ScrollView } from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { Colors } from '../../constants/Colors';
-import { ThemedText } from '../../components/ThemedText';
-import { LinearGradient } from 'expo-linear-gradient';
-import { registrationService } from '../../services/registration';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  ActivityIndicator,
+  Modal,
+} from 'react-native';
 import { router } from 'expo-router';
+import { Colors } from '../../constants/Colors';
+import { api } from '../../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+interface EPS {
+  id_eps: number;
+  nombre: string;
+}
+
 export default function RegisterScreen() {
-    const [nombre, setNombre] = useState('');
-    const [apellido, setApellido] = useState('');
-    const [correo, setCorreo] = useState('');
-    const [contraseña, setContraseña] = useState('');
-    const [confirmarContraseña, setConfirmarContraseña] = useState('');
-    const [genero, setGenero] = useState('');
-    const [rol, setRol] = useState<'paciente' | 'medico'>('paciente');
-    const [especialidad, setEspecialidad] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
+  // Estados para campos básicos
+  const [nombre, setNombre] = useState('');
+  const [apellido, setApellido] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [genero, setGenero] = useState('');
+  const [rol, setRol] = useState<'paciente' | 'medico' | ''>('');
 
-    const handleRegister = async () => {
-        if (!validateForm()) return;
+  // Estados para campos específicos
+  const [especialidad, setEspecialidad] = useState('');
+  const [epsId, setEpsId] = useState<number | null>(null);
 
-        setLoading(true);
-        setError('');
+  // Estados de UI
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [epsList, setEpsList] = useState<EPS[]>([]);
+  const [loadingEps, setLoadingEps] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-        try {
-            const registrationData = {
-                nombre: nombre.trim(),
-                apellido: apellido.trim(),
-                correo: correo.trim(),
-                contraseña: contraseña,
-                genero: genero.trim(),
-                rol: rol === 'paciente' ? 1 : 2,
-                ...(rol === 'medico' && { especialidad: especialidad.trim() })
-            };
+  // Cargar lista de EPS al montar el componente
+  useEffect(() => {
+    loadEPS();
+  }, []);
 
-            console.log('📝 Registration data:', registrationData);
+  const loadEPS = async () => {
+    setLoadingEps(true);
+    try {
+      const response = await api.get('/public/eps');
+      if (Array.isArray(response)) {
+        setEpsList(response);
+      } else {
+        console.error('La respuesta de EPS no es un array:', response);
+        setEpsList([]); // Fallback a un array vacío
+      }
+    } catch (error) {
+      console.error('Error cargando EPS:', error);
+      // Si no se pueden cargar las EPS, crear una lista por defecto
+      setEpsList([
+        { id_eps: 1, nombre: 'Sura' },
+        { id_eps: 2, nombre: 'Colsanitas' },
+        { id_eps: 3, nombre: 'Famisanar' },
+        { id_eps: 4, nombre: 'Compensar' },
+        { id_eps: 5, nombre: 'Nueva EPS' },
+        { id_eps: 6, nombre: 'Salud Total' },
+      ]);
+    } finally {
+      setLoadingEps(false);
+    }
+  };
 
-            const response = await registrationService.register(registrationData);
-            console.log('✅ Registration successful:', response);
+  const validateForm = () => {
+    console.log('🔍 Validando formulario...');
+    console.log('📝 Datos del formulario:', { nombre, apellido, email, password, confirmPassword, genero, rol, especialidad, epsId });
 
-            // Store the token
-            await AsyncStorage.setItem('token', response.token);
-            global.token = response.token;
+    if (!nombre || !apellido || !email || !password || !confirmPassword || !genero || !rol) {
+      console.log('❌ Campos obligatorios faltantes');
+      Alert.alert('Error', 'Por favor completa todos los campos obligatorios');
+      return false;
+    }
 
-            // Store user role
-            await AsyncStorage.setItem('userRole', response.rol);
+    if (password !== confirmPassword) {
+      console.log('❌ Contraseñas no coinciden');
+      Alert.alert('Error', 'Las contraseñas no coinciden');
+      return false;
+    }
 
-            // Navigate to the appropriate dashboard
-            if (response.rol === 'paciente') {
-                router.replace('/(tabs)/patient');
-            } else {
-                router.replace('/(tabs)/doctor');
-            }
+    if (password.length < 6) {
+      console.log('❌ Contraseña muy corta');
+      Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres');
+      return false;
+    }
 
-        } catch (error: any) {
-            console.error('❌ Registration error:', error);
-            setError(error.message || 'Error en el registro');
-        } finally {
-            setLoading(false);
-        }
-    };
+    if (rol === 'medico' && !especialidad) {
+      console.log('❌ Especialidad faltante para médico');
+      Alert.alert('Error', 'Por favor ingresa tu especialidad');
+      return false;
+    }
 
-    const validateForm = () => {
-        // Validations
-        if (!nombre || !apellido || !correo || !contraseña || !confirmarContraseña || !genero) {
-            setError('Por favor completa todos los campos');
-            return false;
-        }
+    if (!epsId) {
+      console.log('❌ EPS no seleccionada');
+      Alert.alert('Error', 'Por favor selecciona tu EPS');
+      return false;
+    }
 
-        if (rol === 'medico' && !especialidad) {
-            setError('Por favor ingresa tu especialidad');
-            return false;
-        }
+    console.log('✅ Validación exitosa');
+    return true;
+  };
 
-        // Name validation (only letters and spaces)
-        if (!/^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/.test(nombre.trim())) {
-            setError('El nombre solo puede contener letras y espacios');
-            return false;
-        }
+  const handleRegister = async () => {
+    if (!validateForm()) return;
 
-        if (!/^[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+$/.test(apellido.trim())) {
-            setError('El apellido solo puede contener letras y espacios');
-            return false;
-        }
+    setLoading(true);
+    try {
+      // Mapear rol de string a número
+      const rolId = rol === 'paciente' ? 1 : 2;
+      
+      const userData = {
+        nombre,
+        apellido,
+        correo: email,
+        contraseña: password,
+        genero,
+        rol: rolId, // Enviar número en lugar de string
+        ...(rol === 'medico' && { especialidad }),
+        id_eps: epsId,
+      };
 
-        // Email validation
-        if (!/^[\w.-]+@[a-zA-Z\d.-]+\.[a-zA-Z]{2,}$/.test(correo.trim())) {
-            setError('Por favor ingresa un correo electrónico válido');
-            return false;
-        }
+      console.log('🌐 Enviando datos de registro:', userData);
 
-        // Password validation (at least 6 characters, one letter and one number)
-        if (!/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/.test(contraseña)) {
-            setError('La contraseña debe tener al menos 6 caracteres, incluyendo al menos una letra y un número');
-            return false;
-        }
+      const response = await api.post('/register', userData);
 
-        if (contraseña !== confirmarContraseña) {
-            setError('Las contraseñas no coinciden');
-            return false;
-        }
+      console.log('✅ Respuesta del registro:', response);
 
-        return true;
-    };
+      // Mostrar modal de éxito
+      setShowSuccessModal(true);
+      
+      // Guardar credenciales temporalmente
+      AsyncStorage.setItem('tempEmail', email);
+      AsyncStorage.setItem('tempPassword', password);
+      
+    } catch (error: any) {
+      console.error('❌ Error en registro:', error);
+      Alert.alert(
+        'Error en el registro',
+        error.message || 'No se pudo completar el registro'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    return (
-        <ScrollView style={styles.container}>
-            <View style={styles.header}>
-                <ThemedText style={styles.title}>Crear Cuenta</ThemedText>
-                <ThemedText style={styles.subtitle}>
-                    Completa tus datos para registrarte
-                </ThemedText>
-            </View>
+  const handleGoToLogin = () => {
+    setShowSuccessModal(false);
+    router.push('/auth/login');
+  };
 
-            <View style={styles.form}>
-                {/* Nombre */}
-                <View style={styles.inputContainer}>
-                    <MaterialCommunityIcons name="account" size={24} color={Colors.primary.dark} />
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Nombre"
-                        value={nombre}
-                        onChangeText={setNombre}
-                        autoCapitalize="words"
-                    />
-                </View>
+  const handleBackToLogin = () => {
+    router.push('/auth/login');
+  };
 
-                {/* Apellido */}
-                <View style={styles.inputContainer}>
-                    <MaterialCommunityIcons name="account" size={24} color={Colors.primary.dark} />
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Apellido"
-                        value={apellido}
-                        onChangeText={setApellido}
-                        autoCapitalize="words"
-                    />
-                </View>
+  return (
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <View style={styles.content}>
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.title}>VitalScore</Text>
+            <Text style={styles.subtitle}>Únete a nuestra comunidad de salud</Text>
+          </View>
 
-                {/* Correo */}
-                <View style={styles.inputContainer}>
-                    <MaterialCommunityIcons name="email" size={24} color={Colors.primary.dark} />
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Correo electrónico"
-                        keyboardType="email-address"
-                        autoCapitalize="none"
-                        value={correo}
-                        onChangeText={setCorreo}
-                    />
-                </View>
+          {/* Form */}
+          <View style={styles.form}>
+            <Text style={styles.formTitle}>Crear Cuenta</Text>
 
-                {/* Contraseña */}
-                <View style={styles.inputContainer}>
-                    <MaterialCommunityIcons name="lock" size={24} color={Colors.primary.dark} />
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Contraseña"
-                        secureTextEntry
-                        value={contraseña}
-                        onChangeText={setContraseña}
-                    />
-                </View>
-
-                {/* Confirmar Contraseña */}
-                <View style={styles.inputContainer}>
-                    <MaterialCommunityIcons name="lock-check" size={24} color={Colors.primary.dark} />
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Confirmar contraseña"
-                        secureTextEntry
-                        value={confirmarContraseña}
-                        onChangeText={setConfirmarContraseña}
-                    />
-                </View>
-
-                {/* Género */}
-                <View style={styles.inputContainer}>
-                    <MaterialCommunityIcons name="gender-male-female" size={24} color={Colors.primary.dark} />
-                    <TextInput
-                        style={styles.input}
-                        placeholder="Género"
-                        value={genero}
-                        onChangeText={setGenero}
-                        autoCapitalize="words"
-                    />
-                </View>
-
-                {/* Tipo de Usuario */}
-                <View style={styles.roleContainer}>
-                    <ThemedText style={styles.roleLabel}>Tipo de usuario:</ThemedText>
-                    <View style={styles.roleButtons}>
-                        <TouchableOpacity
-                            style={[
-                                styles.roleButton,
-                                rol === 'paciente' && styles.roleButtonActive
-                            ]}
-                            onPress={() => setRol('paciente')}
-                        >
-                            <MaterialCommunityIcons 
-                                name="account-heart" 
-                                size={24} 
-                                color={rol === 'paciente' ? Colors.text.light : Colors.primary.dark} 
-                            />
-                            <ThemedText style={[
-                                styles.roleButtonText,
-                                rol === 'paciente' && styles.roleButtonTextActive
-                            ]}>
-                                Paciente
-                            </ThemedText>
-                        </TouchableOpacity>
-                        
-                        <TouchableOpacity
-                            style={[
-                                styles.roleButton,
-                                rol === 'medico' && styles.roleButtonActive
-                            ]}
-                            onPress={() => setRol('medico')}
-                        >
-                            <MaterialCommunityIcons 
-                                name="stethoscope" 
-                                size={24} 
-                                color={rol === 'medico' ? Colors.text.light : Colors.primary.dark} 
-                            />
-                            <ThemedText style={[
-                                styles.roleButtonText,
-                                rol === 'medico' && styles.roleButtonTextActive
-                            ]}>
-                                Médico
-                            </ThemedText>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-
-                {/* Especialidad (solo para médicos) */}
-                {rol === 'medico' && (
-                    <View style={styles.inputContainer}>
-                        <MaterialCommunityIcons name="medical-bag" size={24} color={Colors.primary.dark} />
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Especialidad médica"
-                            value={especialidad}
-                            onChangeText={setEspecialidad}
-                            autoCapitalize="words"
-                        />
-                    </View>
-                )}
-
-                {/* Error Display */}
-                {error ? (
-                    <View style={styles.errorContainer}>
-                        <ThemedText style={styles.errorText}>{error}</ThemedText>
-                    </View>
-                ) : null}
-
-                {/* Register Button */}
-                <TouchableOpacity 
-                    onPress={handleRegister}
-                    disabled={loading}
+            {/* Role Selection */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Tipo de usuario *</Text>
+              <View style={styles.roleContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.roleButton,
+                    rol === 'paciente' && styles.roleButtonActive,
+                  ]}
+                  onPress={() => setRol('paciente')}
                 >
-                    <LinearGradient
-                        colors={[Colors.primary.dark, Colors.primary.medium]}
-                        style={styles.button}
-                    >
-                        <ThemedText style={styles.buttonText}>
-                            {loading ? 'Creando cuenta...' : 'Crear cuenta'}
-                        </ThemedText>
-                    </LinearGradient>
+                  <Text
+                    style={[
+                      styles.roleButtonText,
+                      rol === 'paciente' && styles.roleButtonTextActive,
+                    ]}
+                  >
+                    Paciente
+                  </Text>
                 </TouchableOpacity>
-
-                {/* Login Link */}
-                <View style={styles.loginContainer}>
-                    <ThemedText style={styles.loginText}>¿Ya tienes una cuenta? </ThemedText>
-                    <TouchableOpacity onPress={() => router.replace('/auth/login')}>
-                        <ThemedText style={[styles.loginText, { color: Colors.primary.dark }]}>
-                            Inicia sesión
-                        </ThemedText>
-                    </TouchableOpacity>
-                </View>
+                <TouchableOpacity
+                  style={[
+                    styles.roleButton,
+                    rol === 'medico' && styles.roleButtonActive,
+                  ]}
+                  onPress={() => setRol('medico')}
+                >
+                  <Text
+                    style={[
+                      styles.roleButtonText,
+                      rol === 'medico' && styles.roleButtonTextActive,
+                    ]}
+                  >
+                    Médico
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
-        </ScrollView>
-    );
+
+            {/* Basic Fields */}
+            <View style={styles.row}>
+              <View style={[styles.inputContainer, styles.halfWidth]}>
+                <Text style={styles.label}>Nombre *</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Tu nombre"
+                  placeholderTextColor={Colors.grey[400]}
+                  value={nombre}
+                  onChangeText={setNombre}
+                  autoCapitalize="words"
+                />
+              </View>
+              <View style={[styles.inputContainer, styles.halfWidth]}>
+                <Text style={styles.label}>Apellido *</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Tu apellido"
+                  placeholderTextColor={Colors.grey[400]}
+                  value={apellido}
+                  onChangeText={setApellido}
+                  autoCapitalize="words"
+                />
+              </View>
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Correo electrónico *</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="ejemplo@correo.com"
+                placeholderTextColor={Colors.grey[400]}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+            </View>
+
+            <View style={styles.row}>
+              <View style={[styles.inputContainer, styles.halfWidth]}>
+                <Text style={styles.label}>Contraseña *</Text>
+                <View style={styles.passwordContainer}>
+                  <TextInput
+                    style={[styles.input, styles.passwordInput]}
+                    placeholder="Mínimo 6 caracteres"
+                    placeholderTextColor={Colors.grey[400]}
+                    value={password}
+                    onChangeText={setPassword}
+                    secureTextEntry={!showPassword}
+                    autoCapitalize="none"
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeButton}
+                    onPress={() => setShowPassword(!showPassword)}
+                  >
+                    <Text style={styles.eyeText}>
+                      {showPassword ? '👁️' : '👁️‍🗨️'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <View style={[styles.inputContainer, styles.halfWidth]}>
+                <Text style={styles.label}>Confirmar contraseña *</Text>
+                <View style={styles.passwordContainer}>
+                  <TextInput
+                    style={[styles.input, styles.passwordInput]}
+                    placeholder="Repite tu contraseña"
+                    placeholderTextColor={Colors.grey[400]}
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    secureTextEntry={!showConfirmPassword}
+                    autoCapitalize="none"
+                  />
+                  <TouchableOpacity
+                    style={styles.eyeButton}
+                    onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    <Text style={styles.eyeText}>
+                      {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Género *</Text>
+              <View style={styles.genderContainer}>
+                <TouchableOpacity
+                  style={[
+                    styles.genderButton,
+                    genero === 'masculino' && styles.genderButtonActive,
+                  ]}
+                  onPress={() => setGenero('masculino')}
+                >
+                  <Text
+                    style={[
+                      styles.genderButtonText,
+                      genero === 'masculino' && styles.genderButtonTextActive,
+                    ]}
+                  >
+                    Masculino
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.genderButton,
+                    genero === 'femenino' && styles.genderButtonActive,
+                  ]}
+                  onPress={() => setGenero('femenino')}
+                >
+                  <Text
+                    style={[
+                      styles.genderButtonText,
+                      genero === 'femenino' && styles.genderButtonTextActive,
+                    ]}
+                  >
+                    Femenino
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.genderButton,
+                    genero === 'otro' && styles.genderButtonActive,
+                  ]}
+                  onPress={() => setGenero('otro')}
+                >
+                  <Text
+                    style={[
+                      styles.genderButtonText,
+                      genero === 'otro' && styles.genderButtonTextActive,
+                    ]}
+                  >
+                    Otro
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Role-specific fields */}
+            {rol === 'medico' && (
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Especialidad *</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="ej: Cardiología, Pediatría..."
+                  placeholderTextColor={Colors.grey[400]}
+                  value={especialidad}
+                  onChangeText={setEspecialidad}
+                  autoCapitalize="words"
+                />
+              </View>
+            )}
+
+            {/* EPS Selection */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>EPS *</Text>
+              {loadingEps ? (
+                <View style={styles.loadingContainer}>
+                  <ActivityIndicator size="small" color={Colors.primary.main} />
+                  <Text style={styles.loadingText}>Cargando EPS...</Text>
+                </View>
+              ) : epsList.length > 0 ? (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.epsContainer}
+                >
+                  {epsList.map((eps) => (
+                    <TouchableOpacity
+                      key={eps.id_eps}
+                      style={[
+                        styles.epsButton,
+                        epsId === eps.id_eps && styles.epsButtonActive,
+                      ]}
+                      onPress={() => setEpsId(eps.id_eps)}
+                    >
+                      <Text
+                        style={[
+                          styles.epsButtonText,
+                          epsId === eps.id_eps && styles.epsButtonTextActive,
+                        ]}
+                      >
+                        {eps.nombre}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              ) : (
+                <TextInput
+                  style={styles.input}
+                  placeholder="Ingresa el nombre de tu EPS"
+                  placeholderTextColor={Colors.grey[400]}
+                  value={epsId ? epsList.find(eps => eps.id_eps === epsId)?.nombre || '' : ''}
+                  onChangeText={(text) => {
+                    // Buscar EPS por nombre
+                    const foundEps = epsList.find(eps => 
+                      eps.nombre.toLowerCase().includes(text.toLowerCase())
+                    );
+                    setEpsId(foundEps ? foundEps.id_eps : null);
+                  }}
+                />
+              )}
+            </View>
+
+            {/* Register Button */}
+            <TouchableOpacity
+              style={[styles.registerButton, loading && styles.registerButtonDisabled]}
+              onPress={handleRegister}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color={Colors.primary.contrast} />
+              ) : (
+                <Text style={styles.registerButtonText}>Crear Cuenta</Text>
+              )}
+            </TouchableOpacity>
+
+            {/* Login Link */}
+            <View style={styles.loginContainer}>
+              <Text style={styles.loginText}>¿Ya tienes cuenta? </Text>
+              <TouchableOpacity onPress={handleBackToLogin}>
+                <Text style={styles.loginLink}>Inicia sesión aquí</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </ScrollView>
+
+      {/* Success Modal */}
+      <Modal
+        visible={showSuccessModal}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.successIcon}>
+              <Text style={styles.successIconText}>🎉</Text>
+            </View>
+            <Text style={styles.modalTitle}>¡Registro exitoso!</Text>
+            <Text style={styles.modalMessage}>
+              Tu cuenta ha sido creada correctamente como {rol === 'paciente' ? 'paciente' : 'médico'}.
+            </Text>
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={handleGoToLogin}
+            >
+              <Text style={styles.modalButtonText}>Ir al inicio de sesión</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </KeyboardAvoidingView>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: Colors.background.light,
+  container: {
+    flex: 1,
+    backgroundColor: Colors.grey[50],
+  },
+  scrollContainer: {
+    flexGrow: 1,
+  },
+  content: {
+    paddingHorizontal: 24,
+    paddingVertical: 40,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: Colors.primary.main,
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: Colors.grey[600],
+    textAlign: 'center',
+  },
+  form: {
+    backgroundColor: Colors.light.background,
+    borderRadius: 16,
+    padding: 24,
+    shadowColor: Colors.grey[900],
+    shadowOffset: {
+      width: 0,
+      height: 2,
     },
-    header: {
-        marginTop: 60,
-        marginBottom: 40,
-        alignItems: 'center',
-        paddingHorizontal: 20,
-    },
-    title: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: Colors.primary.dark,
-        marginBottom: 10,
-    },
-    subtitle: {
-        fontSize: 16,
-        color: Colors.neutral.dark,
-        textAlign: 'center',
-    },
-    form: {
-        padding: 20,
-        gap: 20,
-    },
-    inputContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: Colors.primary.dark,
-        borderRadius: 12,
-        paddingHorizontal: 16,
-        height: 56,
-    },
-    input: {
-        flex: 1,
-        marginLeft: 12,
-        fontSize: 16,
-    },
-    roleContainer: {
-        gap: 12,
-    },
-    roleLabel: {
-        fontSize: 16,
-        color: Colors.neutral.dark,
-        fontWeight: 'bold',
-    },
-    roleButtons: {
-        flexDirection: 'row',
-        gap: 12,
-    },
-    roleButton: {
-        flex: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        borderWidth: 1,
-        borderColor: Colors.primary.dark,
-        borderRadius: 12,
-        padding: 16,
-        gap: 8,
-    },
-    roleButtonActive: {
-        backgroundColor: Colors.primary.dark,
-    },
-    roleButtonText: {
-        fontSize: 16,
-        color: Colors.primary.dark,
-        fontWeight: 'bold',
-    },
-    roleButtonTextActive: {
-        color: Colors.text.light,
-    },
-    button: {
-        height: 56,
-        borderRadius: 12,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginTop: 20,
-    },
-    buttonText: {
-        color: Colors.text.light,
-        fontSize: 18,
-        fontWeight: 'bold',
-    },
-    loginContainer: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        marginTop: 20,
-    },
-    loginText: {
-        fontSize: 16,
-        color: Colors.neutral.dark,
-    },
-    errorContainer: {
-        backgroundColor: '#FFEBEE',
-        borderWidth: 1,
-        borderColor: Colors.error,
-        borderRadius: 12,
-        padding: 16,
-        marginTop: 20,
-    },
-    errorText: {
-        color: Colors.error,
-        fontSize: 16,
-    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  formTitle: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: Colors.grey[800],
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  inputContainer: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.grey[700],
+    marginBottom: 8,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: Colors.grey[300],
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: Colors.grey[800],
+    backgroundColor: Colors.grey[50],
+  },
+  row: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  halfWidth: {
+    flex: 1,
+  },
+  passwordContainer: {
+    position: 'relative',
+  },
+  passwordInput: {
+    paddingRight: 50,
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: 16,
+    top: 12,
+  },
+  eyeText: {
+    fontSize: 20,
+  },
+  roleContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  roleButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: Colors.grey[300],
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    backgroundColor: Colors.grey[50],
+  },
+  roleButtonActive: {
+    borderColor: Colors.primary.main,
+    backgroundColor: Colors.primary.main,
+  },
+  roleButtonText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: Colors.grey[700],
+  },
+  roleButtonTextActive: {
+    color: Colors.primary.contrast,
+  },
+  genderContainer: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  genderButton: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: Colors.grey[300],
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    backgroundColor: Colors.grey[50],
+  },
+  genderButtonActive: {
+    borderColor: Colors.primary.main,
+    backgroundColor: Colors.primary.main,
+  },
+  genderButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.grey[700],
+  },
+  genderButtonTextActive: {
+    color: Colors.primary.contrast,
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+  },
+  loadingText: {
+    marginLeft: 8,
+    color: Colors.grey[600],
+    fontSize: 14,
+  },
+  epsContainer: {
+    flexDirection: 'row',
+  },
+  epsButton: {
+    borderWidth: 1,
+    borderColor: Colors.grey[300],
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginRight: 8,
+    backgroundColor: Colors.grey[50],
+  },
+  epsButtonActive: {
+    borderColor: Colors.primary.main,
+    backgroundColor: Colors.primary.main,
+  },
+  epsButtonText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: Colors.grey[700],
+  },
+  epsButtonTextActive: {
+    color: Colors.primary.contrast,
+  },
+  registerButton: {
+    backgroundColor: Colors.primary.main,
+    borderRadius: 8,
+    paddingVertical: 16,
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 24,
+  },
+  registerButtonDisabled: {
+    backgroundColor: Colors.grey[400],
+  },
+  registerButtonText: {
+    color: Colors.primary.contrast,
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  loginContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loginText: {
+    color: Colors.grey[600],
+    fontSize: 14,
+  },
+  loginLink: {
+    color: Colors.primary.main,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: Colors.light.background,
+    padding: 24,
+    borderRadius: 16,
+    width: '80%',
+    maxHeight: '80%',
+    alignItems: 'center',
+  },
+  successIcon: {
+    backgroundColor: Colors.primary.main,
+    borderRadius: 50,
+    padding: 16,
+    marginBottom: 16,
+  },
+  successIconText: {
+    fontSize: 48,
+    fontWeight: 'bold',
+    color: Colors.primary.contrast,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: Colors.grey[800],
+    marginBottom: 16,
+  },
+  modalMessage: {
+    color: Colors.grey[700],
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  modalButton: {
+    backgroundColor: Colors.primary.main,
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    color: Colors.primary.contrast,
+    fontSize: 16,
+    fontWeight: '600',
+  },
 }); 

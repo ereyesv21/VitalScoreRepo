@@ -1,38 +1,36 @@
 import { Tabs } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '../../../constants/Colors';
 
-export default function DoctorTabLayout() {
+export default function DoctorLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors.primary.dark,
-        tabBarInactiveTintColor: Colors.neutral.medium,
+        tabBarActiveTintColor: Colors.primary.main,
+        tabBarInactiveTintColor: Colors.grey[400],
         tabBarStyle: {
+          backgroundColor: Colors.light.background,
+          borderTopColor: Colors.grey[200],
           borderTopWidth: 1,
-          borderTopColor: Colors.primary.dark,
+          paddingBottom: 8,
+          paddingTop: 8,
+          height: 60,
         },
         headerStyle: {
-          backgroundColor: Colors.primary.dark,
+          backgroundColor: Colors.primary.main,
         },
-        headerTintColor: Colors.text.light,
+        headerTintColor: Colors.primary.contrast,
+        headerTitleStyle: {
+          fontWeight: '600',
+        },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Inicio',
+          title: 'Dashboard',
+          tabBarLabel: 'Dashboard',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="home" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="patients"
-        options={{
-          title: 'Pacientes',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="account-group" size={size} color={color} />
+            <Text style={{ color, fontSize: size }}>🏥</Text>
           ),
         }}
       />
@@ -40,8 +38,19 @@ export default function DoctorTabLayout() {
         name="appointments"
         options={{
           title: 'Citas',
+          tabBarLabel: 'Citas',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="calendar" size={size} color={color} />
+            <Text style={{ color, fontSize: size }}>📅</Text>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="patients"
+        options={{
+          title: 'Pacientes',
+          tabBarLabel: 'Pacientes',
+          tabBarIcon: ({ color, size }) => (
+            <Text style={{ color, fontSize: size }}>👥</Text>
           ),
         }}
       />
@@ -49,11 +58,14 @@ export default function DoctorTabLayout() {
         name="profile"
         options={{
           title: 'Perfil',
+          tabBarLabel: 'Perfil',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="account" size={size} color={color} />
+            <Text style={{ color, fontSize: size }}>👤</Text>
           ),
         }}
       />
     </Tabs>
   );
-} 
+}
+
+import { Text } from 'react-native'; 

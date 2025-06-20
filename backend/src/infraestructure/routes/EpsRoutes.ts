@@ -11,6 +11,15 @@ const epsAdapter = new EpsAdapter();
 const epsAppService = new EpsApplicationService(epsAdapter);
 const epsController = new EpsController(epsAppService);
 
+// Ruta pública para obtener todas las EPS (necesaria para registro)
+router.get('/public/eps', async (req, res) => {
+    try {
+        await epsController.getAllEps(req, res);
+    } catch (error) {
+        res.status(500).json({ message: 'Error al obtener las EPS', error });
+    }
+});
+
 // Definir las rutas con manejo de errores y autenticación
 
 router.post('/eps', authenticateToken, async (req, res) => {

@@ -1,50 +1,73 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
-
-const tintColorLight = '#0a7ea4';
+const tintColorLight = '#2f95dc';
 const tintColorDark = '#fff';
 
 export const Colors = {
-  primary: {
-    dark: '#1D6B4F',
-    medium: '#43A047',
-  },
-  secondary: {
-    yellow: '#F4C542',
-    orange: '#F28C38',
-  },
-  neutral: {
-    dark: '#37474F',
-    medium: '#78909C',
-    light: '#ECEFF1',
-  },
-  background: {
-    light: '#FFFFFF',
-    dark: '#F5F5F5',
-  },
-  text: {
-    light: '#FFFFFF',
-    dark: '#37474F',
-  },
-  success: '#4CAF50',
-  warning: '#FFC107',
-  error: '#F44336',
   light: {
-    text: '#11181C',
+    text: '#000',
     background: '#fff',
     tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
+    tabIconDefault: '#ccc',
     tabIconSelected: tintColorLight,
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
+    text: '#fff',
+    background: '#000',
     tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
+    tabIconDefault: '#ccc',
     tabIconSelected: tintColorDark,
   },
-} as const;
+  // Colores principales de VitalScore
+  primary: {
+    main: '#2563eb', // Azul principal
+    light: '#3b82f6',
+    dark: '#1d4ed8',
+    contrast: '#ffffff'
+  },
+  secondary: {
+    main: '#10b981', // Verde para salud
+    light: '#34d399',
+    dark: '#059669',
+    contrast: '#ffffff'
+  },
+  success: {
+    main: '#10b981',
+    light: '#34d399',
+    dark: '#059669'
+  },
+  warning: {
+    main: '#f59e0b',
+    light: '#fbbf24',
+    dark: '#d97706'
+  },
+  error: {
+    main: '#ef4444',
+    light: '#f87171',
+    dark: '#dc2626',
+    contrast: '#ffffff'
+  },
+  info: {
+    main: '#3b82f6',
+    light: '#60a5fa',
+    dark: '#2563eb'
+  },
+  grey: {
+    50: '#f9fafb',
+    100: '#f3f4f6',
+    200: '#e5e7eb',
+    300: '#d1d5db',
+    400: '#9ca3af',
+    500: '#6b7280',
+    600: '#4b5563',
+    700: '#374151',
+    800: '#1f2937',
+    900: '#111827'
+  },
+  // Colores específicos para VitalScore
+  vitalScore: {
+    gold: '#fbbf24',
+    silver: '#9ca3af',
+    bronze: '#d97706',
+    health: '#10b981',
+    wellness: '#8b5cf6'
+  }
+}; 

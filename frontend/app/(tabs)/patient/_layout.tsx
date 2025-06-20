@@ -1,25 +1,26 @@
 import { Tabs } from 'expo-router';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '../../../constants/Colors';
 
-export default function PatientTabLayout() {
+export default function PatientLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors.primary.dark,
-        tabBarInactiveTintColor: Colors.neutral.dark,
+        tabBarActiveTintColor: Colors.primary.main,
+        tabBarInactiveTintColor: Colors.grey[400],
         tabBarStyle: {
+          backgroundColor: Colors.light.background,
+          borderTopColor: Colors.grey[200],
           borderTopWidth: 1,
-          borderTopColor: Colors.primary.dark,
-          height: 60,
           paddingBottom: 8,
+          paddingTop: 8,
+          height: 60,
         },
         headerStyle: {
-          backgroundColor: Colors.primary.dark,
+          backgroundColor: Colors.primary.main,
         },
-        headerTintColor: Colors.text.light,
+        headerTintColor: Colors.primary.contrast,
         headerTitleStyle: {
-          fontWeight: 'bold',
+          fontWeight: '600',
         },
       }}
     >
@@ -27,17 +28,9 @@ export default function PatientTabLayout() {
         name="index"
         options={{
           title: 'Inicio',
+          tabBarLabel: 'Inicio',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="home" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="assignments"
-        options={{
-          title: 'Asignaciones',
-          tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="clipboard-list" size={size} color={color} />
+            <Text style={{ color, fontSize: size }}>🏠</Text>
           ),
         }}
       />
@@ -45,8 +38,19 @@ export default function PatientTabLayout() {
         name="appointments"
         options={{
           title: 'Citas',
+          tabBarLabel: 'Citas',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="calendar" size={size} color={color} />
+            <Text style={{ color, fontSize: size }}>📅</Text>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="assignments"
+        options={{
+          title: 'Tareas',
+          tabBarLabel: 'Tareas',
+          tabBarIcon: ({ color, size }) => (
+            <Text style={{ color, fontSize: size }}>✅</Text>
           ),
         }}
       />
@@ -54,11 +58,14 @@ export default function PatientTabLayout() {
         name="profile"
         options={{
           title: 'Perfil',
+          tabBarLabel: 'Perfil',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="account" size={size} color={color} />
+            <Text style={{ color, fontSize: size }}>👤</Text>
           ),
         }}
       />
     </Tabs>
   );
-} 
+}
+
+import { Text } from 'react-native'; 

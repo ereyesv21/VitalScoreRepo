@@ -18,7 +18,29 @@ export class UsuariosController {
         }
         
         const token = await this.app.login(correo, contraseña);
-        return res.status(200).json({ message: "Login exitoso", token });
+        
+        // Obtener información del usuario para devolver el rol
+        const usuario = await this.app.getUsuarioByCorreo(correo);
+        
+        if (!usuario) {
+          return res.status(401).json({ error: "Usuario no encontrado" });
+        }
+
+        // Determinar el rol basado en el ID del rol
+        const rol = usuario.rol === 1 ? 'paciente' : 'medico';
+
+        return res.status(200).json({ 
+          message: "Login exitoso", 
+          token,
+          rol,
+          usuario: {
+            id: usuario.id_usuario,
+            nombre: usuario.nombre,
+            apellido: usuario.apellido,
+            correo: usuario.correo,
+            genero: usuario.genero
+          }
+        });
 
       } catch (error) {
         return res.status(401).json({ error: "Credenciales incorrectas" });

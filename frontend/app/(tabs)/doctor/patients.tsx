@@ -1,105 +1,192 @@
-import { View, StyleSheet, ScrollView, Pressable } from 'react-native';
-import { ThemedText } from '../../../components/ThemedText';
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Colors } from '../../../constants/Colors';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-export default function Patients() {
+export default function DoctorPatients() {
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <ThemedText style={styles.title}>Mis Pacientes</ThemedText>
-        <ThemedText style={styles.subtitle}>Gestiona tus pacientes activos</ThemedText>
-      </View>
-
+    <View style={styles.container}>
       <View style={styles.content}>
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Pacientes Activos</ThemedText>
-          <View style={styles.emptyState}>
-            <MaterialCommunityIcons name="account-group" size={48} color={Colors.primary.dark} />
-            <ThemedText style={styles.emptyStateText}>
-              No tienes pacientes activos en este momento
-            </ThemedText>
+        <Text style={styles.title}>👥 Mis Pacientes</Text>
+        <Text style={styles.subtitle}>Gestiona la información de tus pacientes</Text>
+        
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Pacientes Activos</Text>
+          
+          <View style={styles.patientItem}>
+            <View style={styles.patientInfo}>
+              <Text style={styles.patientName}>María González</Text>
+              <Text style={styles.patientDetails}>Edad: 45 años | EPS: Sura</Text>
+              <Text style={styles.vitalScore}>VitalScore: 1,450 puntos</Text>
+            </View>
+            <TouchableOpacity style={styles.viewButton}>
+              <Text style={styles.viewButtonText}>Ver</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.patientItem}>
+            <View style={styles.patientInfo}>
+              <Text style={styles.patientName}>Carlos Rodríguez</Text>
+              <Text style={styles.patientDetails}>Edad: 38 años | EPS: Colsanitas</Text>
+              <Text style={styles.vitalScore}>VitalScore: 890 puntos</Text>
+            </View>
+            <TouchableOpacity style={styles.viewButton}>
+              <Text style={styles.viewButtonText}>Ver</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.patientItem}>
+            <View style={styles.patientInfo}>
+              <Text style={styles.patientName}>Ana López</Text>
+              <Text style={styles.patientDetails}>Edad: 52 años | EPS: Famisanar</Text>
+              <Text style={styles.vitalScore}>VitalScore: 2,100 puntos</Text>
+            </View>
+            <TouchableOpacity style={styles.viewButton}>
+              <Text style={styles.viewButtonText}>Ver</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.patientItem}>
+            <View style={styles.patientInfo}>
+              <Text style={styles.patientName}>Juan Pérez</Text>
+              <Text style={styles.patientDetails}>Edad: 29 años | EPS: Sura</Text>
+              <Text style={styles.vitalScore}>VitalScore: 1,250 puntos</Text>
+            </View>
+            <TouchableOpacity style={styles.viewButton}>
+              <Text style={styles.viewButtonText}>Ver</Text>
+            </TouchableOpacity>
           </View>
         </View>
 
-        <View style={styles.section}>
-          <ThemedText style={styles.sectionTitle}>Últimos Pacientes</ThemedText>
-          <View style={styles.emptyState}>
-            <MaterialCommunityIcons name="history" size={48} color={Colors.primary.dark} />
-            <ThemedText style={styles.emptyStateText}>
-              No hay historial de pacientes recientes
-            </ThemedText>
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>📊 Estadísticas Generales</Text>
+          <View style={styles.statsRow}>
+            <Text style={styles.statsLabel}>Total pacientes:</Text>
+            <Text style={styles.statsValue}>24</Text>
+          </View>
+          <View style={styles.statsRow}>
+            <Text style={styles.statsLabel}>Promedio VitalScore:</Text>
+            <Text style={styles.statsValue}>1,420</Text>
+          </View>
+          <View style={styles.statsRow}>
+            <Text style={styles.statsLabel}>Tareas completadas:</Text>
+            <Text style={styles.statsValue}>156</Text>
           </View>
         </View>
 
-        <Pressable style={styles.addButton}>
-          <MaterialCommunityIcons name="account-plus" size={24} color={Colors.text.light} />
-          <ThemedText style={styles.addButtonText}>Agregar Nuevo Paciente</ThemedText>
-        </Pressable>
+        <TouchableOpacity style={styles.addButton}>
+          <Text style={styles.addButtonText}>Agregar Nuevo Paciente</Text>
+        </TouchableOpacity>
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background.light,
+    backgroundColor: Colors.grey[50],
   },
-  header: {
+  content: {
+    flex: 1,
     padding: 20,
-    backgroundColor: Colors.primary.dark,
+    paddingTop: 40,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: Colors.text.light,
-    marginBottom: 4,
+    color: Colors.grey[800],
+    marginBottom: 8,
   },
   subtitle: {
     fontSize: 16,
-    color: Colors.text.light,
-    opacity: 0.8,
+    color: Colors.grey[600],
+    marginBottom: 24,
   },
-  content: {
-    padding: 20,
-    gap: 24,
-  },
-  section: {
-    gap: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: Colors.neutral.dark,
-  },
-  emptyState: {
-    backgroundColor: Colors.background.light,
+  card: {
+    backgroundColor: Colors.light.background,
     borderRadius: 12,
-    padding: 24,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Colors.primary.dark,
-    gap: 12,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: Colors.grey[900],
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  emptyStateText: {
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.grey[800],
+    marginBottom: 16,
+  },
+  patientItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.grey[200],
+  },
+  patientInfo: {
+    flex: 1,
+  },
+  patientName: {
     fontSize: 16,
-    color: Colors.neutral.dark,
-    textAlign: 'center',
+    fontWeight: '600',
+    color: Colors.grey[800],
+    marginBottom: 4,
+  },
+  patientDetails: {
+    fontSize: 14,
+    color: Colors.grey[600],
+    marginBottom: 2,
+  },
+  vitalScore: {
+    fontSize: 14,
+    color: Colors.primary.main,
+    fontWeight: '500',
+  },
+  viewButton: {
+    backgroundColor: Colors.primary.main,
+    borderRadius: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  viewButtonText: {
+    color: Colors.primary.contrast,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.grey[200],
+  },
+  statsLabel: {
+    fontSize: 16,
+    color: Colors.grey[600],
+    fontWeight: '500',
+  },
+  statsValue: {
+    fontSize: 16,
+    color: Colors.primary.main,
+    fontWeight: '600',
   },
   addButton: {
-    flexDirection: 'row',
-    backgroundColor: Colors.primary.dark,
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: Colors.success.main,
+    borderRadius: 8,
+    paddingVertical: 16,
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    marginTop: 16,
+    marginTop: 8,
   },
   addButtonText: {
-    color: Colors.text.light,
+    color: Colors.light.background,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
 }); 
