@@ -1,4 +1,17 @@
-import { API_BASE_URL, API_TIMEOUT } from '../constants/Config';
+import { API_TIMEOUT } from '../constants/Config';
+import axios from 'axios';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
+
+const API_URL = Platform.OS === 'web'
+  ? "http://localhost:4000/api"
+  : "http://192.168.10.17:4000/api";
+
+console.log('API Service - Usando URL:', API_URL);
+
+const apiService = axios.create({
+  baseURL: API_URL,
+});
 
 class ApiError extends Error {
     constructor(public status: number, message: string) {
@@ -30,9 +43,9 @@ const timeoutPromise = (ms: number) => {
 export const api = {
     get: async (endpoint: string) => {
         try {
-            console.log('🌐 GET Request:', `${API_BASE_URL}${endpoint}`);
+            console.log('🌐 GET Request:', `${API_URL}${endpoint}`);
             const response = await Promise.race([
-                fetch(`${API_BASE_URL}${endpoint}`, {
+                fetch(`${API_URL}${endpoint}`, {
                     method: 'GET',
                     headers: {
                         'Content-Type': 'application/json',
@@ -56,9 +69,9 @@ export const api = {
 
     post: async (endpoint: string, data: any) => {
         try {
-            console.log('🌐 POST Request:', `${API_BASE_URL}${endpoint}`, data);
+            console.log('🌐 POST Request:', `${API_URL}${endpoint}`, data);
             const response = await Promise.race([
-                fetch(`${API_BASE_URL}${endpoint}`, {
+                fetch(`${API_URL}${endpoint}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -83,7 +96,7 @@ export const api = {
     put: async (endpoint: string, data: any) => {
         try {
             const response = await Promise.race([
-                fetch(`${API_BASE_URL}${endpoint}`, {
+                fetch(`${API_URL}${endpoint}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -106,7 +119,7 @@ export const api = {
     delete: async (endpoint: string) => {
         try {
             const response = await Promise.race([
-                fetch(`${API_BASE_URL}${endpoint}`, {
+                fetch(`${API_URL}${endpoint}`, {
                     method: 'DELETE',
                     headers: {
                         'Content-Type': 'application/json',
