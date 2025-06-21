@@ -1,4 +1,6 @@
 import { api } from './api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
 
 export interface LoginCredentials {
     correo: string;
@@ -31,8 +33,19 @@ export const authService = {
         return response;
     },
 
-    logout: () => {
-        global.token = undefined;
+    logout: async () => {
+        try {
+            global.token = undefined;
+            await AsyncStorage.multiRemove([
+                'userData',
+                'token',
+                'userRole'
+            ]);
+        } catch (error) {
+            console.error('Error during logout data clearing:', error);
+            // Propagate error to be handled by the caller
+            throw error;
+        }
     },
 
     getCurrentUser: async (): Promise<Usuario> => {

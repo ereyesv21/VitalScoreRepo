@@ -1,19 +1,36 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { Colors } from '../../../constants/Colors';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { authService } from '../../../services/auth';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function DoctorDashboard() {
   const handleLogout = async () => {
-    try {
-      await AsyncStorage.removeItem('token');
-      await AsyncStorage.removeItem('userRole');
-      await AsyncStorage.removeItem('userData');
-      router.replace('/auth/login');
-    } catch (error) {
-      console.error('Error logging out:', error);
-    }
+    console.log('Botón Salir presionado. Mostrando alerta...');
+    Alert.alert(
+      'Cerrar Sesión',
+      '¿Estás seguro de que quieres cerrar sesión?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Cerrar Sesión',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await authService.logout();
+              router.replace('/auth/login');
+            } catch (error) {
+              Alert.alert('Error', 'No se pudo cerrar la sesión.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -45,11 +62,19 @@ export default function DoctorDashboard() {
           <Text style={styles.statsText}>Tareas completadas: 156</Text>
           <Text style={styles.statsText}>Promedio VitalScore: 1,240</Text>
         </View>
-
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutButtonText}>Cerrar Sesión</Text>
-        </TouchableOpacity>
       </ScrollView>
+
+      <View style={styles.logoutContainer}>
+        <TouchableOpacity 
+          style={styles.logoutButton} 
+          onPress={handleLogout}
+        >
+          <View style={styles.logoutButtonContent}>
+            <Ionicons name="log-out-outline" size={20} color={Colors.light.background} />
+            <Text style={styles.logoutButtonText}>Salir</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -134,16 +159,26 @@ const styles = StyleSheet.create({
     color: Colors.grey[700],
     marginBottom: 4,
   },
+  logoutContainer: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    zIndex: 10,
+  },
   logoutButton: {
     backgroundColor: Colors.error.main,
     borderRadius: 8,
-    paddingVertical: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+  },
+  logoutButtonContent: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 20,
   },
   logoutButtonText: {
     color: Colors.light.background,
     fontSize: 16,
     fontWeight: '600',
+    marginLeft: 8,
   },
 }); 

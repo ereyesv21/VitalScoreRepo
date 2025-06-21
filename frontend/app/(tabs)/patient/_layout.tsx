@@ -57,6 +57,19 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="rewards"
+        options={{
+          title: 'Recompensas',
+          tabBarIcon: ({ color, focused }) => (
+            <FontAwesome5 
+              name="gift" 
+              size={focused ? 24 : 20} 
+              color={focused ? Colors.primary.main : Colors.grey[400]} 
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: 'Perfil',
