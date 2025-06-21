@@ -16,6 +16,7 @@ import { router } from 'expo-router';
 import { Colors } from '../../constants/Colors';
 import { api } from '../../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 
 interface EPS {
   id_eps: number;
@@ -278,9 +279,11 @@ export default function RegisterScreen() {
                     style={styles.eyeButton}
                     onPress={() => setShowPassword(!showPassword)}
                   >
-                    <Text style={styles.eyeText}>
-                      {showPassword ? '👁️' : '👁️‍🗨️'}
-                    </Text>
+                    <Ionicons
+                      name={showPassword ? 'eye-off' : 'eye'}
+                      size={24}
+                      color={Colors.grey[500]}
+                    />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -300,9 +303,11 @@ export default function RegisterScreen() {
                     style={styles.eyeButton}
                     onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                   >
-                    <Text style={styles.eyeText}>
-                      {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
-                    </Text>
+                    <Ionicons
+                      name={showConfirmPassword ? 'eye-off' : 'eye'}
+                      size={24}
+                      color={Colors.grey[500]}
+                    />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -562,10 +567,9 @@ const styles = StyleSheet.create({
   eyeButton: {
     position: 'absolute',
     right: 16,
-    top: 12,
-  },
-  eyeText: {
-    fontSize: 20,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
   },
   roleContainer: {
     flexDirection: 'row',

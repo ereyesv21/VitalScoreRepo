@@ -33,6 +33,16 @@ router.get('/pacientes', authenticateToken, async (req, res) => {
     }
 });
 
+router.get('/paciente/current', authenticateToken, async (req, res) => {
+    console.log('--> DEBUG: Entrando al manejador de la ruta /paciente/current');
+    try {
+        await pacientesController.getCurrentPaciente(req, res);
+    } catch (error) {
+        console.error('--> DEBUG: Error en la ruta /paciente/current:', error);
+        res.status(500).json({ message: 'Error al obtener paciente actual', error: (error as Error).message });
+    }
+});
+
 router.get('/paciente/:id', authenticateToken, async (req, res) => {
     try {
         await pacientesController.getPacienteById(req, res);

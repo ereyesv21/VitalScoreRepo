@@ -58,6 +58,42 @@ export class PacientesApplicationService {
         return await this.pacientePort.getPacienteByUsuario(usuario);
     }
 
+    async getPacienteCompletoByUsuario(usuario: number): Promise<any> {
+        const paciente = await this.pacientePort.getPacienteByUsuario(usuario);
+        if (!paciente) {
+            return null;
+        }
+
+        // Obtener datos del usuario
+        const usuarioData = await this.usuariosPort.getUsuarioById(paciente.usuario);
+        if (!usuarioData) {
+            throw new Error("Datos de usuario no encontrados");
+        }
+
+        // Obtener datos de la EPS
+        const epsData = await this.epsPort.getEpsById(paciente.id_eps);
+        if (!epsData) {
+            throw new Error("Datos de EPS no encontrados");
+        }
+
+        // Retornar datos completos
+        return {
+            ...paciente,
+            usuario_data: {
+                id_usuario: usuarioData.id_usuario,
+                nombre: usuarioData.nombre,
+                apellido: usuarioData.apellido,
+                correo: usuarioData.correo,
+                genero: usuarioData.genero,
+                estado: usuarioData.estado
+            },
+            eps_data: {
+                id_eps: epsData.id_eps,
+                nombre: epsData.nombre
+            }
+        };
+    }
+
     async getPacienteByEps(eps: number): Promise<Pacientes[]> {
         // Validar que la EPS existe
         const epsExistente = await this.epsPort.getEpsById(eps);

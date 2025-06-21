@@ -23,6 +23,10 @@ export interface Usuario {
 // Combined interface for patient with user data
 export interface PatientWithUser extends Paciente {
     usuario_data?: Usuario;
+    eps_data?: {
+        id_eps: number;
+        nombre: string;
+    };
     vitalScore?: number; // Calculated from puntos
     lastActivity?: string;
     riskLevel?: 'low' | 'medium' | 'high';

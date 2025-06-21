@@ -16,6 +16,15 @@ import { Canje } from '../entities/Canjes';
 import { Notificacion } from '../entities/Notificaciones';
 
 dotenv.config();
+
+console.log('--- DEBUG: Database Environment Variables ---');
+console.log('DB_HOST:', process.env.DB_HOST);
+console.log('DB_PORT:', process.env.DB_PORT);
+console.log('DB_USER:', process.env.DB_USER);
+console.log('DB_NAME:', process.env.DB_NAME);
+console.log('DB_SCHEMA:', process.env.DB_SCHEMA);
+console.log('-----------------------------------------');
+
 export const AppDataSource = new DataSource({
     type: "postgres",
     host: process.env.DB_HOST,

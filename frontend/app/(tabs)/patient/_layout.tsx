@@ -1,36 +1,32 @@
 import { Tabs } from 'expo-router';
+import React from 'react';
 import { Colors } from '../../../constants/Colors';
+import { FontAwesome5 } from '@expo/vector-icons';
 
-export default function PatientLayout() {
+export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors.primary.main,
-        tabBarInactiveTintColor: Colors.grey[400],
+        headerShown: false,
         tabBarStyle: {
           backgroundColor: Colors.light.background,
-          borderTopColor: Colors.grey[200],
-          borderTopWidth: 1,
-          paddingBottom: 8,
-          paddingTop: 8,
+          borderTopWidth: 0,
+          elevation: 10,
           height: 60,
-        },
-        headerStyle: {
-          backgroundColor: Colors.primary.main,
-        },
-        headerTintColor: Colors.primary.contrast,
-        headerTitleStyle: {
-          fontWeight: '600',
-        },
-      }}
-    >
+          paddingBottom: 5,
+        }
+      }}>
       <Tabs.Screen
         name="index"
         options={{
           title: 'Inicio',
-          tabBarLabel: 'Inicio',
-          tabBarIcon: ({ color, size }) => (
-            <Text style={{ color, fontSize: size }}>🏠</Text>
+          tabBarIcon: ({ color, focused }) => (
+            <FontAwesome5 
+              name="home" 
+              size={focused ? 26 : 22} 
+              color={focused ? Colors.primary.main : Colors.grey[400]} 
+            />
           ),
         }}
       />
@@ -38,9 +34,12 @@ export default function PatientLayout() {
         name="appointments"
         options={{
           title: 'Citas',
-          tabBarLabel: 'Citas',
-          tabBarIcon: ({ color, size }) => (
-            <Text style={{ color, fontSize: size }}>📅</Text>
+          tabBarIcon: ({ color, focused }) => (
+            <FontAwesome5 
+              name={focused ? 'calendar-check' : 'calendar-alt'} 
+              size={focused ? 26 : 22} 
+              color={focused ? Colors.primary.main : Colors.grey[400]} 
+            />
           ),
         }}
       />
@@ -48,9 +47,12 @@ export default function PatientLayout() {
         name="assignments"
         options={{
           title: 'Tareas',
-          tabBarLabel: 'Tareas',
-          tabBarIcon: ({ color, size }) => (
-            <Text style={{ color, fontSize: size }}>✅</Text>
+          tabBarIcon: ({ color, focused }) => (
+            <FontAwesome5 
+              name="clipboard-list" 
+              size={focused ? 26 : 22} 
+              color={focused ? Colors.primary.main : Colors.grey[400]} 
+            />
           ),
         }}
       />
@@ -58,9 +60,12 @@ export default function PatientLayout() {
         name="profile"
         options={{
           title: 'Perfil',
-          tabBarLabel: 'Perfil',
-          tabBarIcon: ({ color, size }) => (
-            <Text style={{ color, fontSize: size }}>👤</Text>
+          tabBarIcon: ({ color, focused }) => (
+            <FontAwesome5 
+              name={focused ? 'user-alt' : 'user'} 
+              size={focused ? 26 : 22} 
+              color={focused ? Colors.primary.main : Colors.grey[400]} 
+            />
           ),
         }}
       />

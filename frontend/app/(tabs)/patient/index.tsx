@@ -1,60 +1,116 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { Colors } from '../../../constants/Colors';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { patientService, PatientWithUser } from '../../../services/patients';
+import { Ionicons, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 
 export default function PatientDashboard() {
-  const handleLogout = async () => {
+  const [patientData, setPatientData] = useState<PatientWithUser | null>(null);
+  const [userName, setUserName] = useState('');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, []);
+
+  const loadDashboardData = async () => {
     try {
-      await AsyncStorage.removeItem('token');
-      await AsyncStorage.removeItem('userRole');
-      await AsyncStorage.removeItem('userData');
-      router.replace('/auth/login');
+      setLoading(true);
+      // Cargar nombre de usuario desde AsyncStorage para una bienvenida inmediata
+      const userDataString = await AsyncStorage.getItem('userData');
+      if (userDataString) {
+        const userData = JSON.parse(userDataString);
+        setUserName(userData.nombre || 'Paciente');
+      }
+
+      // Cargar el resto de los datos desde el servidor
+      const data = await patientService.getCurrentPatient();
+      setPatientData(data);
     } catch (error) {
-      console.error('Error logging out:', error);
+      console.error('Error loading dashboard data:', error);
+      Alert.alert('Error', 'No se pudo cargar la información del dashboard');
+    } finally {
+      setLoading(false);
     }
   };
+
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color={Colors.primary.main} />
+        <Text style={styles.loadingText}>Cargando dashboard...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Dashboard del Paciente</Text>
-        <Text style={styles.subtitle}>Bienvenido a VitalScore</Text>
+        <Text style={styles.title}>
+          ¡Bienvenid@, {userName}!
+        </Text>
+        <Text style={styles.subtitle}>Aquí está tu resumen de VitalScore</Text>
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>🎯 Tu VitalScore</Text>
-          <Text style={styles.score}>1,250 puntos</Text>
+          <View style={styles.cardTitleContainer}>
+            <Ionicons name="star-outline" size={22} color={Colors.primary.main} />
+            <Text style={styles.cardTitle}>Tu VitalScore</Text>
+          </View>
+          <Text style={styles.score}>{patientData?.puntos?.toLocaleString() || '0'} puntos</Text>
           <Text style={styles.cardDescription}>
-            ¡Sigue completando tareas para ganar más puntos!
+            ¡Sigue completando tareas para ganar más puntos y canjear recompensas!
           </Text>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>📋 Tareas Pendientes</Text>
+          <View style={styles.cardTitleContainer}>
+            <FontAwesome5 name="tasks" size={20} color={Colors.primary.main} />
+            <Text style={styles.cardTitle}>Tareas Pendientes</Text>
+          </View>
           <Text style={styles.taskCount}>3 tareas por completar</Text>
-          <TouchableOpacity style={styles.button}>
+          <TouchableOpacity 
+            style={styles.button} 
+            onPress={() => router.push('/(tabs)/patient/assignments')}
+          >
             <Text style={styles.buttonText}>Ver Tareas</Text>
           </TouchableOpacity>
         </View>
 
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>📅 Próxima Cita</Text>
-          <Text style={styles.appointmentText}>Dr. García - Cardiología</Text>
-          <Text style={styles.appointmentDate}>15 de junio, 10:00 AM</Text>
+          <View style={styles.cardTitleContainer}>
+            <MaterialIcons name="event" size={22} color={Colors.primary.main} />
+            <Text style={styles.cardTitle}>Próxima Cita</Text>
+          </View>
+          <Text style={styles.appointmentText}>No tienes citas programadas</Text>
+          <TouchableOpacity 
+            style={[styles.button, styles.secondaryButton]}
+            onPress={() => router.push('/(tabs)/patient/appointments')}
+          >
+            <Text style={[styles.buttonText, styles.secondaryButtonText]}>Ver Citas</Text>
+          </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutButtonText}>Cerrar Sesión</Text>
-        </TouchableOpacity>
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.grey[50],
+  },
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: Colors.grey[600],
+  },
   container: {
     flex: 1,
     backgroundColor: Colors.grey[50],
@@ -97,11 +153,16 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  cardTitleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   cardTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: Colors.grey[800],
-    marginBottom: 12,
+    marginLeft: 10,
   },
   score: {
     fontSize: 32,
@@ -129,25 +190,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  secondaryButton: {
+    backgroundColor: Colors.light.background,
+    borderWidth: 1,
+    borderColor: Colors.primary.main,
+  },
+  secondaryButtonText: {
+    color: Colors.primary.main,
+  },
   appointmentText: {
     fontSize: 16,
     color: Colors.grey[700],
-    marginBottom: 4,
+    marginBottom: 12,
   },
   appointmentDate: {
     fontSize: 14,
     color: Colors.grey[600],
-  },
-  logoutButton: {
-    backgroundColor: Colors.error.main,
-    borderRadius: 8,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 20,
-  },
-  logoutButtonText: {
-    color: Colors.error.contrast,
-    fontSize: 16,
-    fontWeight: '600',
   },
 }); 

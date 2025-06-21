@@ -1,5 +1,4 @@
 import { API_TIMEOUT } from '../constants/Config';
-import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
@@ -8,10 +7,6 @@ const API_URL = Platform.OS === 'web'
   : "http://192.168.10.17:4000/api";
 
 console.log('API Service - Usando URL:', API_URL);
-
-const apiService = axios.create({
-  baseURL: API_URL,
-});
 
 class ApiError extends Error {
     constructor(public status: number, message: string) {
@@ -43,6 +38,7 @@ const timeoutPromise = (ms: number) => {
 export const api = {
     get: async (endpoint: string) => {
         try {
+            const token = await AsyncStorage.getItem('token');
             console.log('🌐 GET Request:', `${API_URL}${endpoint}`);
             const response = await Promise.race([
                 fetch(`${API_URL}${endpoint}`, {
@@ -50,7 +46,7 @@ export const api = {
                     headers: {
                         'Content-Type': 'application/json',
                         // Add auth token if available
-                        ...(global.token && { Authorization: `Bearer ${global.token}` }),
+                        ...(token && { Authorization: `Bearer ${token}` }),
                     },
                 }),
                 timeoutPromise(API_TIMEOUT),
@@ -69,13 +65,14 @@ export const api = {
 
     post: async (endpoint: string, data: any) => {
         try {
+            const token = await AsyncStorage.getItem('token');
             console.log('🌐 POST Request:', `${API_URL}${endpoint}`, data);
             const response = await Promise.race([
                 fetch(`${API_URL}${endpoint}`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        ...(global.token && { Authorization: `Bearer ${global.token}` }),
+                        ...(token && { Authorization: `Bearer ${token}` }),
                     },
                     body: JSON.stringify(data),
                 }),
@@ -95,12 +92,13 @@ export const api = {
 
     put: async (endpoint: string, data: any) => {
         try {
+            const token = await AsyncStorage.getItem('token');
             const response = await Promise.race([
                 fetch(`${API_URL}${endpoint}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
-                        ...(global.token && { Authorization: `Bearer ${global.token}` }),
+                        ...(token && { Authorization: `Bearer ${token}` }),
                     },
                     body: JSON.stringify(data),
                 }),
@@ -118,12 +116,13 @@ export const api = {
 
     delete: async (endpoint: string) => {
         try {
+            const token = await AsyncStorage.getItem('token');
             const response = await Promise.race([
                 fetch(`${API_URL}${endpoint}`, {
                     method: 'DELETE',
                     headers: {
                         'Content-Type': 'application/json',
-                        ...(global.token && { Authorization: `Bearer ${global.token}` }),
+                        ...(token && { Authorization: `Bearer ${token}` }),
                     },
                 }),
                 timeoutPromise(API_TIMEOUT),

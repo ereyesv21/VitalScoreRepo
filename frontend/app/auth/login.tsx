@@ -15,6 +15,7 @@ import { router } from 'expo-router';
 import { Colors } from '../../constants/Colors';
 import { api } from '../../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -170,9 +171,11 @@ export default function LoginScreen() {
                   style={styles.eyeButton}
                   onPress={() => setShowPassword(!showPassword)}
                 >
-                  <Text style={styles.eyeText}>
-                    {showPassword ? '👁️' : '👁️‍🗨️'}
-                  </Text>
+                  <Ionicons 
+                    name={showPassword ? 'eye-off' : 'eye'} 
+                    size={24} 
+                    color={Colors.grey[500]} 
+                  />
                 </TouchableOpacity>
               </View>
             </View>
@@ -310,6 +313,8 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 16,
     top: 12,
+    height: '100%',
+    justifyContent: 'center',
   },
   eyeText: {
     fontSize: 20,

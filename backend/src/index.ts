@@ -8,11 +8,14 @@ const server = new ServerBootstrap(app);
 
 ((async () =>{
         try{
+            // 1. Conectar a la base de datos PRIMERO
             await connectDB();
-            const instances = [server.init()];
-            await Promise.all(instances)
+            
+            // 2. Iniciar el servidor DESPUÉS de que la conexión sea exitosa
+            await server.init();
+
         }catch(error){
-            console.error(error);
+            console.error('Error durante la inicialización:', error);
             process.exit(1); //termina el proceso si hay un error
         }
     })

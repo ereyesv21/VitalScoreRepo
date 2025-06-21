@@ -116,6 +116,30 @@ export class PacientesController {
         }
     }
 
+    async getCurrentPaciente(req: Request, res: Response): Promise<void> {
+        try {
+            // Obtener el ID del usuario del token JWT
+            const userId = (req as any).user.id;
+            
+            if (!userId) {
+                res.status(401).json({ error: "Usuario no autenticado" });
+                return;
+            }
+
+            const paciente = await this.pacientesApplicationService.getPacienteCompletoByUsuario(userId);
+            
+            if (!paciente) {
+                res.status(404).json({ error: "Paciente no encontrado para este usuario" });
+                return;
+            }
+
+            res.status(200).json(paciente);
+        } catch (error) {
+            console.error("Error al obtener paciente actual:", error);
+            res.status(500).json({ error: "Error interno del servidor" });
+        }
+    }
+
     async getPacienteByEps(req: Request, res: Response): Promise<void> {
         try {
             const eps = parseInt(req.params.eps);

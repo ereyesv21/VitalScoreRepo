@@ -6,7 +6,8 @@
  */
 
 import * as joi from 'joi';
-import "dotenv/config";
+import dotenv from 'dotenv';
+dotenv.config();
 
 //ReturnEnviromentVars: define el tipo de las variables de entorno que la aplicacion utilizara
 export type ReturnEnviromentVars = {
