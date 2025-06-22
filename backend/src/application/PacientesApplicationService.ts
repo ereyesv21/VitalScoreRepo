@@ -220,4 +220,48 @@ export class PacientesApplicationService {
         // Filtrar por puntos bajos
         return todosLosPacientes.filter(paciente => paciente.puntos <= limiteMaximo);
     }
+
+    async actualizarRacha(pacienteId: number): Promise<{ racha: number; mensaje: string }> {
+        const paciente = await this.pacientePort.getPacienteById(pacienteId);
+        if (!paciente) {
+            throw new Error("Paciente no encontrado");
+        }
+
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0); // Normalizar a medianoche
+
+        const ultimaFecha = paciente.ultima_fecha_racha ? new Date(paciente.ultima_fecha_racha) : null;
+        if (ultimaFecha) {
+            ultimaFecha.setHours(0, 0, 0, 0); // Normalizar a medianoche
+        }
+
+        let rachaActual = paciente.racha_dias || 0;
+        let mensaje = "";
+
+        if (ultimaFecha && ultimaFecha.getTime() === hoy.getTime()) {
+            // Ya se actualizó la racha hoy, no hacer nada.
+            mensaje = "La racha ya fue actualizada hoy.";
+            return { racha: rachaActual, mensaje };
+        }
+
+        const ayer = new Date(hoy);
+        ayer.setDate(hoy.getDate() - 1);
+
+        if (ultimaFecha && ultimaFecha.getTime() === ayer.getTime()) {
+            // La racha continúa
+            rachaActual++;
+            mensaje = "¡Felicidades! Tu racha ha aumentado.";
+        } else {
+            // Se rompió la racha o es el primer día
+            rachaActual = 1;
+            mensaje = "¡Has iniciado una nueva racha!";
+        }
+
+        await this.pacientePort.updatePaciente(pacienteId, {
+            racha_dias: rachaActual,
+            ultima_fecha_racha: hoy
+        });
+
+        return { racha: rachaActual, mensaje };
+    }
 }

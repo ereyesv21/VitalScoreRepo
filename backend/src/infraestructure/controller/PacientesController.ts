@@ -365,4 +365,26 @@ export class PacientesController {
             res.status(500).json({ error: "Error interno del servidor" });
         }
     }
+
+    async actualizarRacha(req: Request, res: Response): Promise<void> {
+        try {
+            const pacienteId = parseInt(req.params.id);
+
+            if (isNaN(pacienteId) || pacienteId <= 0) {
+                res.status(400).json({ error: "El ID del paciente debe ser un número positivo" });
+                return;
+            }
+
+            const resultado = await this.pacientesApplicationService.actualizarRacha(pacienteId);
+            res.status(200).json(resultado);
+
+        } catch (error) {
+            console.error("Error al actualizar la racha:", error);
+            if (error instanceof Error) {
+                res.status(400).json({ error: error.message });
+            } else {
+                res.status(500).json({ error: "Error interno del servidor" });
+            }
+        }
+    }
 }

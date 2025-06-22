@@ -83,6 +83,14 @@ router.put('/paciente/:id', authenticateToken, async (req, res) => {
     }
 });
 
+router.put('/paciente/:id/racha', authenticateToken, async (req, res) => {
+    try {
+        await pacientesController.actualizarRacha(req, res);
+    } catch (error) {
+        res.status(500).json({ message: 'Error al actualizar la racha del paciente', error });
+    }
+});
+
 router.delete('/paciente/:id', authenticateToken, async (req, res) => {
     try {
         await pacientesController.deletePaciente(req, res);

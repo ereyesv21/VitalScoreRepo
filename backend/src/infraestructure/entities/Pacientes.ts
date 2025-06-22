@@ -1,20 +1,26 @@
-import { Column, Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from "typeorm";
-import { Usuario } from "./Usuarios";
-import { EPS } from "./Eps";
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Usuario } from './Usuarios';
+import { EPS } from './Eps';
 
-@Entity({ name: "Pacientes" })
+@Entity('Pacientes', { schema: 'vitalscore' })
 export class Paciente {
-    @PrimaryGeneratedColumn({ name: "id_paciente" })
-    id_paciente!: number;
+    @PrimaryGeneratedColumn()
+    id_paciente: number;
 
-    @Column({ name: "puntos", type: 'int' })
-    puntos!: number;
-
-    @ManyToOne(() => Usuario)
-    @JoinColumn({ name: "usuario" }) // El campo 'usuario' en Pacientes es la FK a usuarios.id_usuario
-    usuario!: Usuario;
+    @Column('int')
+    puntos: number;
 
     @ManyToOne(() => EPS)
-    @JoinColumn({ name: "id_eps" }) // El campo 'id_eps' en Pacientes es la FK a eps.id_eps
-    eps!: EPS;
+    @JoinColumn({ name: 'id_eps' })
+    eps: EPS;
+
+    @ManyToOne(() => Usuario)
+    @JoinColumn({ name: 'usuario' })
+    usuario: Usuario;
+
+    @Column({ type: 'int', name: 'racha_dias', default: 0 })
+    racha_dias: number;
+
+    @Column({ type: 'date', name: 'ultima_fecha_racha', nullable: true })
+    ultima_fecha_racha: Date;
 }

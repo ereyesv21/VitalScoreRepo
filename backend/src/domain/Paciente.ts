@@ -3,4 +3,6 @@ export interface Pacientes {
     puntos: number;
     id_eps: number;
     usuario: number;
+    racha_dias?: number;
+    ultima_fecha_racha?: Date;
 } 

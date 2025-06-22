@@ -20,7 +20,9 @@ export class PacientesAdapter implements PacientePort {
             id_paciente: pacienteEntity.id_paciente,
             puntos: pacienteEntity.puntos,
             usuario: pacienteEntity.usuario ? pacienteEntity.usuario.id_usuario : 0,
-            id_eps: pacienteEntity.eps ? pacienteEntity.eps.id_eps : 0
+            id_eps: pacienteEntity.eps ? pacienteEntity.eps.id_eps : 0,
+            racha_dias: pacienteEntity.racha_dias,
+            ultima_fecha_racha: pacienteEntity.ultima_fecha_racha
         };
     }
 
@@ -89,6 +91,8 @@ export class PacientesAdapter implements PacientePort {
 
             // Actualizar solo los campos enviados
             if (paciente.puntos !== undefined) existingPaciente.puntos = paciente.puntos;
+            if (paciente.racha_dias !== undefined) existingPaciente.racha_dias = paciente.racha_dias;
+            if (paciente.ultima_fecha_racha !== undefined) existingPaciente.ultima_fecha_racha = paciente.ultima_fecha_racha;
 
             // Si se actualiza el usuario, buscar la nueva entidad
             if (paciente.usuario) {
