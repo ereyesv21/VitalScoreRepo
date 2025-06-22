@@ -6,6 +6,8 @@ export interface Paciente {
     puntos: number;
     id_eps: number;
     usuario: number;
+    racha_dias?: number;
+    ultima_fecha_racha?: string;
 }
 
 // Interface for user data (joined with paciente)
@@ -83,5 +85,10 @@ export const patientService = {
     // Get patient's files
     getPatientFiles: async (patientId: number) => {
         return api.get(`/paciente/${patientId}/archivos`);
+    },
+
+    // Update patient's daily streak
+    updateStreak: async (patientId: number): Promise<{ racha: number; mensaje: string }> => {
+        return api.put(`/paciente/${patientId}/racha`, {});
     },
 }; 

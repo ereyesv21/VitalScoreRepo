@@ -312,8 +312,8 @@ const styles = StyleSheet.create({
   eyeButton: {
     position: 'absolute',
     right: 16,
-    top: 12,
-    height: '100%',
+    top: 0,
+    bottom: 0,
     justifyContent: 'center',
   },
   eyeText: {
