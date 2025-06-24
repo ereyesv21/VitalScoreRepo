@@ -17,6 +17,7 @@ import { Colors } from '../../constants/Colors';
 import { api } from '../../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import { adminService } from '../../services/admin';
 
 interface EPS {
   id_eps: number;
@@ -30,7 +31,7 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [genero, setGenero] = useState('');
-  const [rol, setRol] = useState<'paciente' | 'medico' | ''>('');
+  const [rol, setRol] = useState<'paciente' | 'medico' | 'administrador' | ''>('');
   const [especialidad, setEspecialidad] = useState('');
   const [epsId, setEpsId] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
@@ -39,9 +40,14 @@ export default function RegisterScreen() {
   const [epsList, setEpsList] = useState<EPS[]>([]);
   const [loadingEps, setLoadingEps] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [adminKey, setAdminKey] = useState('');
+  const [especialidades, setEspecialidades] = useState<any[]>([]);
+  const [especialidadId, setEspecialidadId] = useState<number | null>(null);
+  const [especialidadesError, setEspecialidadesError] = useState(false);
 
   useEffect(() => {
     loadEPS();
+    loadEspecialidades();
   }, []);
 
   const loadEPS = async () => {
@@ -68,6 +74,23 @@ export default function RegisterScreen() {
     }
   };
 
+  const loadEspecialidades = async () => {
+    try {
+      const response = await adminService.getAllSpecialties();
+      console.log('Especialidades:', response);
+      if (response && Array.isArray(response.data)) {
+        setEspecialidades(response.data);
+        setEspecialidadesError(false);
+      } else {
+        setEspecialidades([]);
+        setEspecialidadesError(true);
+      }
+    } catch (error) {
+      setEspecialidades([]);
+      setEspecialidadesError(true);
+    }
+  };
+
   const validateForm = () => {
     if (!nombre || !apellido || !email || !password || !confirmPassword || !genero || !rol || !epsId) {
       Alert.alert('Error', 'Por favor completa todos los campos obligatorios');
@@ -81,8 +104,12 @@ export default function RegisterScreen() {
       Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres');
       return false;
     }
-    if (rol === 'medico' && !especialidad) {
-      Alert.alert('Error', 'Por favor ingresa tu especialidad');
+    if (rol === 'medico' && !especialidadId) {
+      Alert.alert('Error', 'Por favor selecciona tu especialidad');
+      return false;
+    }
+    if (rol === 'administrador' && !adminKey) {
+      Alert.alert('Error', 'Por favor ingresa la clave de administrador');
       return false;
     }
     return true;
@@ -92,17 +119,24 @@ export default function RegisterScreen() {
     if (!validateForm()) return;
     setLoading(true);
     try {
-      const rolId = rol === 'paciente' ? 1 : 2;
-      const userData = {
+      let rolId = 1;
+      if (rol === 'medico') rolId = 2;
+      if (rol === 'administrador') rolId = 3;
+      const userData: any = {
         nombre,
         apellido,
         correo: email,
         contraseña: password,
         genero,
         rol: rolId,
-        ...(rol === 'medico' && { especialidad }),
         id_eps: epsId,
       };
+      if (rol === 'medico') {
+        userData.especialidad = especialidadId;
+      }
+      if (rol === 'administrador') {
+        userData.adminKey = adminKey;
+      }
       await api.post('/register', userData);
       setShowSuccessModal(true);
     } catch (error: any) {
@@ -144,6 +178,12 @@ export default function RegisterScreen() {
                   onPress={() => setRol('medico')}
                 >
                   <Text style={[styles.roleButtonText, rol === 'medico' && styles.roleButtonTextActive]}>Médico</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.roleButton, rol === 'administrador' && styles.roleButtonActive]}
+                  onPress={() => setRol('administrador')}
+                >
+                  <Text style={[styles.roleButtonText, rol === 'administrador' && styles.roleButtonTextActive]}>Administrador</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -239,14 +279,40 @@ export default function RegisterScreen() {
             {rol === 'medico' && (
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Especialidad *</Text>
+                {especialidadesError ? (
+                  <Text style={{ color: Colors.error.main, marginBottom: 8 }}>
+                    Error cargando especialidades. Intenta más tarde.
+                  </Text>
+                ) : especialidades.length === 0 ? (
+                  <ActivityIndicator color={Colors.primary.main} style={{ alignSelf: 'flex-start' }} />
+                ) : (
+                  <View style={styles.pickerContainer}>
+                    {especialidades.map((esp) => (
+                      <TouchableOpacity
+                        key={esp.id_especialidad}
+                        style={[styles.pickerButton, especialidadId === esp.id_especialidad && styles.pickerButtonActive]}
+                        onPress={() => setEspecialidadId(esp.id_especialidad)}
+                      >
+                        <Text style={[styles.pickerButtonText, especialidadId === esp.id_especialidad && styles.pickerButtonTextActive]}>
+                          {esp.nombre}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
+            )}
+            {rol === 'administrador' && (
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Clave de administrador *</Text>
                 <View style={styles.inputContainer}>
-                  <Ionicons name="medkit-outline" size={20} color={Colors.grey[400]} style={styles.icon} />
+                  <Ionicons name="key-outline" size={20} color={Colors.grey[400]} style={styles.icon} />
                   <TextInput
                     style={styles.input}
-                    placeholder="Ej: Cardiología"
-                    value={especialidad}
-                    onChangeText={setEspecialidad}
-                    autoCapitalize="words"
+                    placeholder="Ingresa la clave de administrador"
+                    value={adminKey}
+                    onChangeText={setAdminKey}
+                    secureTextEntry
                   />
                 </View>
               </View>
