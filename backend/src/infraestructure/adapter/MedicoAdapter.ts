@@ -5,6 +5,7 @@ import { Repository } from "typeorm";
 import { AppDataSource } from "../config/data-base";
 import { Usuario } from "../entities/Usuarios";
 import { EPS } from "../entities/Eps";
+import { Especialidades } from "../entities/Especialidades";
 
 export class MedicoAdapter implements MedicoPort {
 
@@ -18,16 +19,16 @@ export class MedicoAdapter implements MedicoPort {
     private toDomain(medicoEntity: MedicoEntity): MedicoDomain {
         return {
             id_medico: medicoEntity.id_medico,
-            especialidad: medicoEntity.especialidad,
+            especialidad: medicoEntity.id_especialidad ? medicoEntity.id_especialidad.id_especialidad : 0,
             usuario: medicoEntity.usuario ? medicoEntity.usuario.id_usuario : 0,
             eps: medicoEntity.eps ? medicoEntity.eps.id_eps : 0
         };
     }
 
     // Transforma el modelo de dominio a la entidad de infraestructura
-    private toEntity(medicoDomain: Omit<MedicoDomain, "id_medico">, usuarioEntity: Usuario, epsEntity: EPS): Omit<MedicoEntity, "id_medico"> {
+    private toEntity(medicoDomain: Omit<MedicoDomain, "id_medico">, usuarioEntity: Usuario, epsEntity: EPS, especialidadEntity: Especialidades): Omit<MedicoEntity, "id_medico"> {
         const medicoEntity = new MedicoEntity();
-        medicoEntity.especialidad = medicoDomain.especialidad;
+        medicoEntity.id_especialidad = especialidadEntity;
         medicoEntity.usuario = usuarioEntity;
         medicoEntity.eps = epsEntity;
         return medicoEntity;
@@ -71,8 +72,14 @@ export class MedicoAdapter implements MedicoPort {
             const epsEntity = await epsRepository.findOne({ where: { id_eps: medico.eps } });
             if (!epsEntity) throw new Error("EPS no encontrada");
 
+            // Busca el objeto Especialidades por id (asegura que sea number)
+            const especialidadRepository = this.medicoRepository.manager.getRepository(Especialidades);
+            const especialidadId = Number(medico.especialidad);
+            const especialidadEntity = await especialidadRepository.findOne({ where: { id_especialidad: especialidadId } });
+            if (!especialidadEntity) throw new Error("Especialidad no encontrada");
+
             // Crea el medicoEntity y asigna los objetos relacionados
-            const medicoEntity = this.toEntity(medico, usuarioEntity, epsEntity) as MedicoEntity;
+            const medicoEntity = this.toEntity(medico, usuarioEntity, epsEntity, especialidadEntity) as MedicoEntity;
 
             const newMedico = await this.medicoRepository.save(medicoEntity);
             return newMedico.id_medico;
@@ -84,11 +91,17 @@ export class MedicoAdapter implements MedicoPort {
 
     async updateMedico(id: number, medico: Partial<MedicoDomain>): Promise<boolean> {
         try {
-            const existingMedico = await this.medicoRepository.findOne({ where: { id_medico: id }, relations: ["usuario", "eps"] });
+            const existingMedico = await this.medicoRepository.findOne({ where: { id_medico: id }, relations: ["usuario", "eps", "id_especialidad"] });
             if (!existingMedico) return false;
 
             // Actualizar solo los campos enviados
-            if (medico.especialidad) existingMedico.especialidad = medico.especialidad;
+            if (medico.especialidad) {
+                const especialidadRepository = this.medicoRepository.manager.getRepository(Especialidades);
+                const especialidadId = Number(medico.especialidad);
+                const especialidadEntity = await especialidadRepository.findOne({ where: { id_especialidad: especialidadId } });
+                if (!especialidadEntity) throw new Error("Especialidad no encontrada");
+                existingMedico.id_especialidad = especialidadEntity;
+            }
 
             // Si se actualiza el usuario, buscar la nueva entidad
             if (medico.usuario) {
@@ -151,11 +164,11 @@ export class MedicoAdapter implements MedicoPort {
         }
     }
 
-    async getMedicoByEspecialidad(especialidad: string): Promise<MedicoDomain[]> {
+    async getMedicoByEspecialidad(especialidad: number): Promise<MedicoDomain[]> {
         try {
             const medicos = await this.medicoRepository.find({ 
-                where: { especialidad: especialidad }, 
-                relations: ["usuario", "eps"] 
+                where: { id_especialidad: { id_especialidad: especialidad } }, 
+                relations: ["usuario", "eps", "id_especialidad"] 
             });
             return medicos.map(medico => this.toDomain(medico));
         } catch (error) {

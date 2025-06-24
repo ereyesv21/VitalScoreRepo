@@ -2,14 +2,16 @@ import { Column, Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn, OneToMan
 import { Usuario } from "./Usuarios";
 import { EPS } from "./Eps";
 import { DisponibilidadTemporal } from "./DisponibilidadTemporal";
+import { Especialidades } from "./Especialidades";
 
 @Entity({ name: "Medicos" })
 export class Medico {
     @PrimaryGeneratedColumn({ name: "id_medico" })
     id_medico!: number;
 
-    @Column({ name: "especialidad", type: 'varchar', length: 255 })
-    especialidad!: string;
+    @ManyToOne(() => Especialidades)
+    @JoinColumn({ name: "id_especialidad" }) // El campo 'id_especialidad' en Medicos es la FK a Especialidades.id_especialidad
+    id_especialidad!: Especialidades;
 
     @ManyToOne(() => Usuario)
     @JoinColumn({ name: "usuario" }) // El campo 'usuario' en Medicos es la FK a usuarios.id_usuario

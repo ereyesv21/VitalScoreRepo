@@ -91,6 +91,7 @@ export class UsuariosController {
 
     async completeRegistration(req: Request, res: Response): Promise<Response> {
         try {
+            console.log("Datos recibidos en registro:", req.body);
             const { 
                 nombre, 
                 apellido, 
@@ -133,6 +134,7 @@ export class UsuariosController {
             if (rol === 1) { // Paciente
                 await this.app.createPacienteProfile(usuarioId, { puntos: 0, id_eps });
             } else if (rol === 2) { // Médico
+                console.log("Entrando a creación de médico:", { usuarioId, especialidad, id_eps });
                 if (!especialidad) {
                     return res.status(400).json({ error: "La especialidad es requerida para médicos" });
                 }

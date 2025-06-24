@@ -14,8 +14,8 @@ export class MedicoController {
             const { especialidad, usuario, eps } = req.body;
 
             // Validaciones básicas
-            if (!especialidad || typeof especialidad !== "string" || especialidad.trim().length < 3)
-                return res.status(400).json({ error: "La especialidad debe tener al menos 3 caracteres" });
+            if (!especialidad || isNaN(Number(especialidad)))
+                return res.status(400).json({ error: "La especialidad debe ser un id numérico válido" });
 
             if (!usuario || typeof usuario !== "number" || usuario <= 0)
                 return res.status(400).json({ error: "El ID del usuario debe ser un número válido" });
@@ -24,7 +24,7 @@ export class MedicoController {
                 return res.status(400).json({ error: "El ID de la EPS debe ser un número válido" });
 
             const medico: Omit<Medicos, "id_medico"> = {
-                especialidad: especialidad.trim(),
+                especialidad: Number(especialidad),
                 usuario,
                 eps
             };
@@ -66,11 +66,11 @@ export class MedicoController {
     async getMedicoByEspecialidad(req: Request, res: Response): Promise<Response> {
         try {
             const { especialidad } = req.params;
-            
-            if (!especialidad || typeof especialidad !== "string" || especialidad.trim().length < 3)
-                return res.status(400).json({ error: "La especialidad debe tener al menos 3 caracteres" });
+            const especialidadId = Number(especialidad);
+            if (!especialidad || isNaN(especialidadId))
+                return res.status(400).json({ error: "La especialidad debe ser un id numérico válido" });
 
-            const medicos = await this.app.getMedicoByEspecialidad(especialidad.trim());
+            const medicos = await this.app.getMedicoByEspecialidad(especialidadId);
             return res.status(200).json(medicos);
         } catch (error) {
             if (error instanceof Error) {
@@ -152,8 +152,8 @@ export class MedicoController {
             const { especialidad, usuario, eps } = req.body;
 
             // Validaciones básicas para campos opcionales
-            if (especialidad && (typeof especialidad !== "string" || especialidad.trim().length < 3))
-                return res.status(400).json({ error: "La especialidad debe tener al menos 3 caracteres" });
+            if (especialidad && isNaN(Number(especialidad)))
+                return res.status(400).json({ error: "La especialidad debe ser un id numérico válido" });
 
             if (usuario && (typeof usuario !== "number" || usuario <= 0))
                 return res.status(400).json({ error: "El ID del usuario debe ser un número válido" });
@@ -163,7 +163,7 @@ export class MedicoController {
 
             // Preparar datos para actualización
             const updateData: Partial<Medicos> = {};
-            if (especialidad) updateData.especialidad = especialidad.trim();
+            if (especialidad) updateData.especialidad = Number(especialidad);
             if (usuario) updateData.usuario = usuario;
             if (eps) updateData.eps = eps;
 

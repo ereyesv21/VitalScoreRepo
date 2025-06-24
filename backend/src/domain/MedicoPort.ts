@@ -6,7 +6,7 @@ export interface MedicoPort {
     deleteMedico(id: number): Promise<boolean>;
     getMedicoById(id: number): Promise<Medicos | null>;
     getAllMedicos(): Promise<Medicos[]>;
-    getMedicoByEspecialidad(especialidad: string): Promise<Medicos[]>;
+    getMedicoByEspecialidad(especialidad: number): Promise<Medicos[]>;
     getMedicoByUsuario(usuario: number): Promise<Medicos | null>;
     getMedicoByEps(eps: number): Promise<Medicos[]>;
 }

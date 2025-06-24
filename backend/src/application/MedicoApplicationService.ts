@@ -36,10 +36,9 @@ export class MedicoApplicationService {
         }
 
         // Validar que la especialidad no esté vacía
-        if (!medicoData.especialidad || medicoData.especialidad.trim().length === 0) {
+        if (!medicoData.especialidad || isNaN(Number(medicoData.especialidad))) {
             throw new Error("La especialidad es requerida");
         }
-
 
         return await this.medicoPort.createMedico(medicoData);
     }
@@ -52,11 +51,11 @@ export class MedicoApplicationService {
         return await this.medicoPort.getMedicoById(id);
     }
 
-    async getMedicoByEspecialidad(especialidad: string): Promise<Medicos[]> {
-        if (!especialidad || especialidad.trim().length === 0) {
+    async getMedicoByEspecialidad(especialidad: number): Promise<Medicos[]> {
+        if (!especialidad || isNaN(Number(especialidad))) {
             throw new Error("La especialidad es requerida para la búsqueda");
         }
-        return await this.medicoPort.getMedicoByEspecialidad(especialidad);
+        return await this.medicoPort.getMedicoByEspecialidad(Number(especialidad));
     }
 
     async getMedicoByUsuario(usuario: number): Promise<Medicos | null> {
@@ -101,10 +100,9 @@ export class MedicoApplicationService {
         }
 
         // Validar que la especialidad no esté vacía si se actualiza
-        if (medicoData.especialidad && medicoData.especialidad.trim().length === 0) {
+        if (medicoData.especialidad !== undefined && isNaN(Number(medicoData.especialidad))) {
             throw new Error("La especialidad no puede estar vacía");
         }
-
 
         return await this.medicoPort.updateMedico(id, medicoData);
     }

@@ -102,7 +102,7 @@ export class UsuariosApplicationService {
     async createMedicoProfile(usuarioId: number, profileData: { especialidad: string, eps: number }): Promise<number> {
         const medicoData = {
             usuario: usuarioId,
-            especialidad: profileData.especialidad,
+            especialidad: Number(profileData.especialidad),
             eps: profileData.eps
         };
         return await this.medicoAdapter.createMedico(medicoData);

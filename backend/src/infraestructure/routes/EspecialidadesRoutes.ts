@@ -19,7 +19,7 @@ router.post('/especialidad', authenticateToken, async (req, res) => {
 });
 
 // GET /api/especialidades - Obtener todas las especialidades
-router.get('/especialidades', authenticateToken, async (req, res) => {
+router.get('/especialidades', async (req, res) => {
     await especialidadesController.getAllEspecialidades(req, res);
 });
 
