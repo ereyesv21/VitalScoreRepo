@@ -14,6 +14,17 @@ import { Administrador } from '../entities/Administradores';
 import { Recompensa } from '../entities/Recompensas';
 import { Canje } from '../entities/Canjes';
 import { Notificacion } from '../entities/Notificaciones';
+import { HorariosMedicosDetallados } from '../entities/HorariosMedicosDetallados';
+import { CitaMedica } from '../entities/CitasMedicas';
+import { ConfiguracionNotificacion } from '../entities/ConfiguracionNotificaciones';
+import { Diagnostico } from '../entities/Diagnosticos';
+import { DisponibilidadTemporal } from '../entities/DisponibilidadTemporal';
+import { Enfermedades } from '../entities/Enfermedades';
+import { Especialidades } from '../entities/Especialidades';
+import { HistorialTareas } from '../entities/HistorialTareas';
+import { HorariosMedicos } from '../entities/HorariosMedicos';
+import { Medicamentos } from '../entities/Medicamentos';
+import { Prescripciones } from '../entities/Prescripciones';
 
 dotenv.config();
 
@@ -35,7 +46,33 @@ export const AppDataSource = new DataSource({
     schema: process.env.DB_SCHEMA,
     synchronize: false,
     logging: true,
-    entities: [Usuario, EPS, Rol, Medico, Paciente, Plan, HistorialPunto, Tarea, Pacientes_Medicos, Archivo, Administrador, Recompensa, Canje, Notificacion],
+    entities: [
+        Usuario, 
+        EPS, 
+        Rol, 
+        Medico, 
+        Paciente, 
+        Plan, 
+        HistorialPunto, 
+        Tarea, 
+        Pacientes_Medicos, 
+        Archivo, 
+        Administrador, 
+        Recompensa, 
+        Canje, 
+        Notificacion, 
+        HorariosMedicosDetallados,
+        CitaMedica,
+        ConfiguracionNotificacion,
+        Diagnostico,
+        DisponibilidadTemporal,
+        Enfermedades,
+        Especialidades,
+        HistorialTareas,
+        HorariosMedicos,
+        Medicamentos,
+        Prescripciones
+    ],
 });
 
 //conectar a la base de datos

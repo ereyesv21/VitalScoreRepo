@@ -13,6 +13,17 @@ import administradoresRoutes from '../routes/AdministradoresRoutes';
 import recompensasRoutes from '../routes/RecompensasRoutes';
 import canjesRoutes from '../routes/CanjesRoutes';
 import notificacionesRoutes from '../routes/NotificacionesRoutes';
+import citasMedicasRoutes from '../routes/CitasMedicasRoutes';
+import configuracionNotificacionesRoutes from '../routes/ConfiguracionNotificacionesRoutes';
+import diagnosticosRoutes from '../routes/DiagnosticosRoutes';
+import disponibilidadTemporalRoutes from '../routes/DisponibilidadTemporalRoutes';
+import enfermedadesRoutes from '../routes/EnfermedadesRoutes';
+import especialidadesRoutes from '../routes/EspecialidadesRoutes';
+import historialTareasRoutes from '../routes/HistorialTareasRoutes';
+import horariosMedicosRoutes from '../routes/HorariosMedicosRoutes';
+import horariosMedicosDetalladosRoutes from '../routes/HorariosMedicosDetalladosRoutes';
+import medicamentosRoutes from '../routes/MedicamentosRoutes';
+import prescripcionesRoutes from '../routes/PrescripcionesRoutes';
 
 class app{
     //declarar atributos 
@@ -43,7 +54,17 @@ class app{
         this.app.use("/api", recompensasRoutes);
         this.app.use("/api", canjesRoutes);
         this.app.use("/api", notificacionesRoutes);
-
+        this.app.use("/api", citasMedicasRoutes);
+        this.app.use("/api", configuracionNotificacionesRoutes);
+        this.app.use("/api", diagnosticosRoutes);
+        this.app.use("/api", disponibilidadTemporalRoutes);
+        this.app.use("/api", enfermedadesRoutes);
+        this.app.use("/api", especialidadesRoutes);
+        this.app.use("/api", historialTareasRoutes);
+        this.app.use("/api", horariosMedicosRoutes);
+        this.app.use("/api", horariosMedicosDetalladosRoutes);
+        this.app.use("/api", medicamentosRoutes);
+        this.app.use("/api", prescripcionesRoutes);
     }
 
     getApp(){

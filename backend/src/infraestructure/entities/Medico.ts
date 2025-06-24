@@ -1,6 +1,7 @@
-import { Column, Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from "typeorm";
+import { Column, Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn, OneToMany } from "typeorm";
 import { Usuario } from "./Usuarios";
 import { EPS } from "./Eps";
+import { DisponibilidadTemporal } from "./DisponibilidadTemporal";
 
 @Entity({ name: "Medicos" })
 export class Medico {
@@ -17,4 +18,7 @@ export class Medico {
     @ManyToOne(() => EPS)
     @JoinColumn({ name: "eps" }) // El campo 'eps' en Medicos es la FK a eps.id_eps
     eps!: EPS;
+
+    @OneToMany(() => DisponibilidadTemporal, disponibilidad => disponibilidad.medicoRelacion)
+    disponibilidadesTemporales: DisponibilidadTemporal[];
 }
