@@ -25,6 +25,7 @@ import { HistorialTareas } from '../entities/HistorialTareas';
 import { HorariosMedicos } from '../entities/HorariosMedicos';
 import { Medicamentos } from '../entities/Medicamentos';
 import { Prescripciones } from '../entities/Prescripciones';
+import { TareasPacientes } from '../entities/TareasPacientes';
 
 dotenv.config();
 
@@ -71,7 +72,8 @@ export const AppDataSource = new DataSource({
         HistorialTareas,
         HorariosMedicos,
         Medicamentos,
-        Prescripciones
+        Prescripciones,
+        TareasPacientes
     ],
 });
 

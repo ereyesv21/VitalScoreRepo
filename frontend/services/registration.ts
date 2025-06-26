@@ -1,5 +1,6 @@
 import { api } from './api';
 import { authService } from './auth';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export interface RegistrationData {
     nombre: string;
@@ -51,41 +52,33 @@ export const registrationService = {
         return api.post('/medico', doctorData);
     },
 
-    // Complete registration flow with automatic login
+    // Complete registration flow - simplified to use backend's complete registration
     completeRegistration: async (userData: RegistrationData, additionalData?: any) => {
         try {
-            // Step 1: Create user
-            const userResponse = await registrationService.register(userData);
-            const userId = userResponse.usuarioId;
+            // Combine user data with additional data
+            const registrationData = {
+                ...userData,
+                ...additionalData
+            };
 
-            // Step 2: Create role-specific profile
-            if (userData.rol === 1) { // Paciente
-                const patientData: PatientRegistrationData = {
-                    usuario: userId,
-                    puntos: 0, // Start with 0 points
-                    id_eps: additionalData?.id_eps || 1, // Default EPS or from form
-                };
-                await registrationService.createPatientProfile(patientData);
-            } else if (userData.rol === 2) { // Médico
-                const doctorData: DoctorRegistrationData = {
-                    usuario: userId,
-                    especialidad: additionalData?.especialidad || 'General',
-                    eps: additionalData?.eps || 1, // Default EPS or from form
-                };
-                await registrationService.createDoctorProfile(doctorData);
+            // Call the backend's complete registration endpoint
+            const response = await api.post('/register', registrationData);
+            
+            // Store the token if provided
+            if (response.token) {
+                await AsyncStorage.setItem('token', response.token);
+                await AsyncStorage.setItem('user', JSON.stringify({
+                    id: response.usuarioId,
+                    rol: response.rol
+                }));
             }
-
-            // Step 3: Automatically log in the user
-            const loginResponse = await authService.login({
-                correo: userData.correo,
-                contraseña: userData.contraseña
-            });
 
             return { 
                 success: true, 
-                userId,
-                loginResponse,
-                role: userData.rol === 1 ? 'paciente' : 'medico'
+                userId: response.usuarioId,
+                token: response.token,
+                role: response.rol,
+                message: response.message
             };
         } catch (error) {
             console.error('Registration error:', error);

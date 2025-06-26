@@ -286,4 +286,9 @@ export class CitasMedicasApplicationService {
     async getCitasMedicasVencidas(): Promise<CitasMedicas[]> {
         return await this.citasMedicasPort.getCitasMedicasVencidas();
     }
+
+    // Nuevo método: Obtener paciente por ID de usuario
+    async getPacienteByUsuario(usuarioId: number): Promise<any> {
+        return await this.pacientePort.getPacienteByUsuario(usuarioId);
+    }
 } 

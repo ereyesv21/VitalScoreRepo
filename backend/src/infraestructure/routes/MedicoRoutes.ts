@@ -5,6 +5,8 @@ import { MedicoController } from '../controller/MedicoController';
 import { authenticateToken } from '../web/authMiddleware';
 import { UsuariosAdapter } from '../adapter/UsuariosAdapter';
 import { EpsAdapter } from '../adapter/EpsAdapter';
+import { CitasMedicasAdapter } from '../adapter/CitasMedicasAdapter';
+import { PacientesAdapter } from '../adapter/PacientesAdapter';
 
 const router = Router();
 
@@ -12,7 +14,9 @@ const router = Router();
 const medicoAdapter = new MedicoAdapter();
 const usuariosAdapter = new UsuariosAdapter();
 const epsAdapter = new EpsAdapter();
-const medicoAppService = new MedicoApplicationService(medicoAdapter, usuariosAdapter, epsAdapter);
+const citasMedicasAdapter = new CitasMedicasAdapter();
+const pacientesAdapter = new PacientesAdapter();
+const medicoAppService = new MedicoApplicationService(medicoAdapter, usuariosAdapter, epsAdapter, citasMedicasAdapter, pacientesAdapter);
 const medicoController = new MedicoController(medicoAppService);
 
 // Definir las rutas con manejo de errores y autenticación
@@ -33,6 +37,43 @@ router.get('/medicos', authenticateToken, async (req, res) => {
     }
 });
 
+console.log('[MedicoRoutes] Router de médicos montado');
+
+// Rutas fijas primero
+router.get('/medico/citas', authenticateToken, async (req, res) => {
+    console.log('[MedicoRoutes] GET /medico/citas recibido');
+    try {
+        await medicoController.getCurrentMedicoCitas(req, res);
+    } catch (error) {
+        res.status(500).json({ message: 'Error al obtener las citas del médico', error });
+    }
+});
+
+router.get('/medico/current', authenticateToken, async (req, res) => {
+    try {
+        await medicoController.getCurrentMedico(req, res);
+    } catch (error) {
+        res.status(500).json({ message: 'Error al obtener el médico actual', error });
+    }
+});
+
+router.get('/medico/pacientes', authenticateToken, async (req, res) => {
+    try {
+        await medicoController.getCurrentMedicoPacientes(req, res);
+    } catch (error) {
+        res.status(500).json({ message: 'Error al obtener los pacientes del médico', error });
+    }
+});
+
+router.get('/medico/stats', authenticateToken, async (req, res) => {
+    try {
+        await medicoController.getCurrentMedicoStats(req, res);
+    } catch (error) {
+        res.status(500).json({ message: 'Error al obtener las estadísticas del médico', error });
+    }
+});
+
+// Rutas con parámetros al final
 router.get('/medico/:id', authenticateToken, async (req, res) => {
     try {
         await medicoController.getMedicoById(req, res);
@@ -41,7 +82,7 @@ router.get('/medico/:id', authenticateToken, async (req, res) => {
     }
 });
 
-router.get('/medico/especialidad/:especialidad', authenticateToken, async (req, res) => {
+router.get('/medicos/especialidad/:especialidad', authenticateToken, async (req, res) => {
     try {
         await medicoController.getMedicoByEspecialidad(req, res);
     } catch (error) {

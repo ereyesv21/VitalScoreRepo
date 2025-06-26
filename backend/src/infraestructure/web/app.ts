@@ -24,6 +24,7 @@ import horariosMedicosRoutes from '../routes/HorariosMedicosRoutes';
 import horariosMedicosDetalladosRoutes from '../routes/HorariosMedicosDetalladosRoutes';
 import medicamentosRoutes from '../routes/MedicamentosRoutes';
 import prescripcionesRoutes from '../routes/PrescripcionesRoutes';
+import tareasPacientesRoutes from '../routes/TareasPacientesRoutes';
 
 class app{
     //declarar atributos 
@@ -65,6 +66,7 @@ class app{
         this.app.use("/api", horariosMedicosDetalladosRoutes);
         this.app.use("/api", medicamentosRoutes);
         this.app.use("/api", prescripcionesRoutes);
+        this.app.use("/api", tareasPacientesRoutes);
     }
 
     getApp(){

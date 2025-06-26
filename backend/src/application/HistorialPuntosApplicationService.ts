@@ -32,6 +32,11 @@ export class HistorialPuntosApplicationService {
         if (historial.descripcion.length > 500) {
             throw new Error("La descripción no puede exceder 500 caracteres");
         }
+        // Sumar los puntos al paciente
+        const nuevosPuntos = (paciente.puntos || 0) + historial.puntos;
+        console.log(`[HistorialPuntos] Actualizando puntos del paciente ${paciente.id_paciente}: ${paciente.puntos} + ${historial.puntos} = ${nuevosPuntos}`);
+        const updateResult = await this.pacientePort.updatePaciente(paciente.id_paciente, { puntos: nuevosPuntos });
+        console.log(`[HistorialPuntos] Resultado de updatePaciente:`, updateResult);
         return await this.historialPort.createHistorial(historial);
     }
 

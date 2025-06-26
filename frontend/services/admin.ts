@@ -28,6 +28,7 @@ export interface DoctorSchedule {
   pausa_inicio?: string;
   pausa_fin?: string;
   estado: string;
+  disponible?: boolean;
 }
 
 export interface CreateDoctorData {
@@ -84,17 +85,27 @@ export interface AdminStats {
 export const adminService = {
   // ===== GESTIÓN DE MÉDICOS =====
   
-  // Obtener todos los médicos
-  getAllDoctors: async (page?: number, pageSize?: number): Promise<{ items: Doctor[]; total: number }> => {
-    const response = await api.get('/medicos');
-    const doctors = response as Doctor[];
-    
-    // For now, return all doctors with pagination info
-    // TODO: Implement actual pagination in backend
-    return {
-      items: doctors,
-      total: doctors.length
-    };
+  // Obtener todos los médicos con datos completos
+  getAllDoctors: async (): Promise<Doctor[]> => {
+    const medicos = await api.get('/medicos');
+    const [usuarios, especialidades, epsList] = await Promise.all([
+      api.get('/usuarios'),
+      api.get('/especialidades'),
+      api.get('/public/eps'),
+    ]);
+    console.log('medicos:', medicos);
+    console.log('usuarios:', usuarios);
+    console.log('especialidades:', especialidades);
+    console.log('epsList:', epsList);
+    const especialidadesArray = Array.isArray(especialidades.data) ? especialidades.data : especialidades;
+    const result = medicos.map((medico: any) => ({
+      ...medico,
+      usuario_data: usuarios.find((u: any) => u.id_usuario === medico.usuario),
+      especialidad_nombre: especialidadesArray.find((e: any) => e.id_especialidad === medico.especialidad)?.nombre,
+      eps_nombre: epsList.find((e: any) => e.id_eps === medico.eps)?.nombre,
+    }));
+    console.log('doctores mapeados:', result);
+    return result;
   },
 
   // Obtener médico por ID
@@ -102,34 +113,71 @@ export const adminService = {
     return api.get(`/medico/${id}`);
   },
 
-  // Crear nuevo médico
-  createDoctor: async (data: CreateDoctorData): Promise<Doctor> => {
-    return api.post('/medico', data);
+  // Crear médico (usuario + médico)
+  createDoctor: async (data: {
+    nombre: string;
+    apellido: string;
+    correo: string;
+    contraseña: string;
+    especialidad: number;
+    genero: string;
+    id_eps: number;
+  }) => {
+    return api.post('/register', {
+      ...data,
+      rol: 2, // 2 = médico
+    });
   },
 
-  // Actualizar médico
-  updateDoctor: async (id: number, data: UpdateDoctorData): Promise<Doctor> => {
-    return api.put(`/medico/${id}`, data);
+  // Editar médico (usuario + médico)
+  updateDoctor: async (usuarioId: number, medicoId: number, data: {
+    nombre?: string;
+    apellido?: string;
+    correo?: string;
+    genero?: string;
+    estado?: string;
+    especialidad?: number;
+    id_eps?: number;
+  }) => {
+    await api.put(`/usuario/${usuarioId}`, {
+      nombre: data.nombre,
+      apellido: data.apellido,
+      correo: data.correo,
+      genero: data.genero,
+      estado: data.estado,
+    });
+    await api.put(`/medico/${medicoId}`, {
+      especialidad: data.especialidad,
+      eps: data.id_eps,
+    });
   },
 
-  // Eliminar médico
-  deleteDoctor: async (id: number): Promise<void> => {
-    return api.delete(`/medico/${id}`);
+  // Eliminar médico y usuario
+  deleteDoctor: async (medicoId: number, usuarioId: number) => {
+    await api.delete(`/medico/${medicoId}`);
+    await api.delete(`/usuario/${usuarioId}`);
   },
 
-  // Activar médico
-  activateDoctor: async (id: number): Promise<Doctor> => {
-    return api.put(`/medico/${id}/activar`, {});
-  },
-
-  // Inactivar médico
-  deactivateDoctor: async (id: number): Promise<Doctor> => {
-    return api.put(`/medico/${id}/inactivar`, {});
+  // Activar/Inactivar usuario
+  setUserStatus: async (usuarioId: number, estado: string) => {
+    await api.put(`/usuario/${usuarioId}`, { estado });
   },
 
   // Obtener médicos por especialidad
   getDoctorsBySpecialty: async (specialty: string): Promise<Doctor[]> => {
-    return api.get(`/medicos/especialidad/${specialty}`);
+    const medicos = await api.get(`/medicos/especialidad/${specialty}`);
+    const [usuarios, especialidades, epsList] = await Promise.all([
+      api.get('/usuarios'),
+      api.get('/especialidades'),
+      api.get('/public/eps'),
+    ]);
+    const especialidadesArray = Array.isArray(especialidades.data) ? especialidades.data : especialidades;
+    return medicos.map((medico: any) => ({
+      ...medico,
+      usuario_data: usuarios.find((u: any) => u.id_usuario === medico.usuario),
+      especialidad_nombre: especialidadesArray.find((e: any) => e.id_especialidad === medico.especialidad)?.nombre,
+      eps_nombre: epsList.find((e: any) => e.id_eps === medico.eps)?.nombre,
+    }));
   },
 
   // Obtener médicos activos
@@ -161,6 +209,11 @@ export const adminService = {
 
   // Obtener disponibilidad de un médico
   getDoctorAvailability: async (doctorId: number, date: string): Promise<any> => {
+    return api.get(`/horarios-medicos/${doctorId}/disponibilidad?fecha=${date}`);
+  },
+
+  // Obtener horarios de un médico para una fecha con disponibilidad
+  getDoctorAvailableSchedules: async (doctorId: number, date: string): Promise<any[]> => {
     return api.get(`/horarios-medicos/${doctorId}/disponibilidad?fecha=${date}`);
   },
 
@@ -290,5 +343,9 @@ export const adminService = {
   // Generar reporte de médicos
   generateDoctorReport: async (): Promise<any> => {
     return api.get('/admin/reportes/medicos');
-  }
+  },
+
+  // Catálogos
+  getEspecialidades: async () => api.get('/especialidades'),
+  getEps: async () => api.get('/public/eps'),
 }; 

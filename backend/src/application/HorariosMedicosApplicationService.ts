@@ -1,8 +1,12 @@
 import { HorariosMedicos } from '../domain/HorariosMedicos';
 import { HorariosMedicosPort } from '../domain/HorariosMedicosPort';
+import { CitasMedicasPort } from '../domain/CitasMedicasPort';
 
 export class HorariosMedicosApplicationService {
-  constructor(private horariosMedicosPort: HorariosMedicosPort) {}
+  constructor(
+    private horariosMedicosPort: HorariosMedicosPort,
+    private citasMedicasPort: CitasMedicasPort
+  ) {}
 
   async createHorarioMedico(horario: HorariosMedicos): Promise<HorariosMedicos> {
     // Validaciones
@@ -189,5 +193,61 @@ export class HorariosMedicosApplicationService {
 
   async getAllHorariosMedicos(): Promise<HorariosMedicos[]> {
     return await this.horariosMedicosPort.findAll();
+  }
+
+  // NUEVO MÉTODO: Obtener horarios disponibles de un médico para una fecha
+  async getDisponibilidadByMedicoYFecha(medicoId: number, fecha: string): Promise<any[]> {
+    console.log('[HorariosMedicosApplicationService] getDisponibilidadByMedicoYFecha - medicoId:', medicoId, 'fecha:', fecha);
+    
+    if (!medicoId || !fecha) {
+      throw new Error('El ID del médico y la fecha son requeridos');
+    }
+    // Obtener el día de la semana (1=Lunes, 7=Domingo)
+    const fechaObj = new Date(fecha);
+    let diaSemana = fechaObj.getUTCDay();
+    diaSemana = diaSemana === 0 ? 7 : diaSemana;
+
+    console.log('[HorariosMedicosApplicationService] día de la semana calculado:', diaSemana);
+
+    // Obtener todos los horarios del médico para ese día
+    const horarios = await this.horariosMedicosPort.findByMedicoAndDia(medicoId, diaSemana);
+    console.log('[HorariosMedicosApplicationService] horarios encontrados:', horarios.length);
+
+    // Obtener las citas agendadas para ese médico y fecha
+    const citas = await this.citasMedicasPort.getCitasMedicasByMedicoAndFecha(medicoId, fechaObj);
+    console.log('[HorariosMedicosApplicationService] citas encontradas para médico', medicoId, 'fecha', fecha, ':', citas.length);
+    console.log('[HorariosMedicosApplicationService] detalle de citas:', JSON.stringify(citas, null, 2));
+
+    console.log('[HorariosMedicosApplicationService] --- DEPURACIÓN INICIO ---');
+    console.log('[HorariosMedicosApplicationService] Horarios asignados para el médico y día:', JSON.stringify(horarios, null, 2));
+    console.log('[HorariosMedicosApplicationService] Citas agendadas para el médico y fecha:', JSON.stringify(citas, null, 2));
+    // Marcar cada horario con disponible: true/false
+    const horariosConDisponibilidad = horarios.map(horario => {
+      const toMinutes = (horaStr: string): number => {
+        const [h, m] = horaStr.split(':');
+        return parseInt(h, 10) * 60 + parseInt(m, 10);
+      };
+      const hInicio = toMinutes(horario.hora_inicio);
+      const hFin = toMinutes(horario.hora_fin);
+      console.log('[HorariosMedicosApplicationService] Evaluando horario:', horario.hora_inicio, '-', horario.hora_fin);
+      const ocupado = citas.some(cita => {
+        const cInicio = toMinutes(cita.hora_inicio);
+        const cFin = toMinutes(cita.hora_fin);
+        const estadoOcupado = ['programada', 'confirmada', 'en_progreso'].includes(cita.estado);
+        const solapa = hInicio < cFin && hFin > cInicio;
+        if (estadoOcupado && solapa) {
+          console.log('[HorariosMedicosApplicationService] --> Solapamiento detectado: horario', horario.hora_inicio, '-', horario.hora_fin, 'con cita', cita.hora_inicio, '-', cita.hora_fin, 'estado:', cita.estado);
+        }
+        return estadoOcupado && solapa;
+      });
+      console.log('[HorariosMedicosApplicationService] Resultado:', horario.hora_inicio, '-', horario.hora_fin, 'ocupado:', ocupado);
+      return {
+        ...horario,
+        disponible: !ocupado
+      };
+    });
+    console.log('[HorariosMedicosApplicationService] --- DEPURACIÓN FIN ---');
+    
+    return horariosConDisponibilidad;
   }
 } 

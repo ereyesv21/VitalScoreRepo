@@ -5,6 +5,7 @@ import { Repository } from "typeorm";
 import { AppDataSource } from "../config/data-base";
 import { Paciente } from "../entities/Pacientes";
 import { Medico } from "../entities/Medico";
+import { Especialidades } from "../entities/Especialidades";
 
 export class CitasMedicasAdapter implements CitasMedicasPort {
 
@@ -15,7 +16,7 @@ export class CitasMedicasAdapter implements CitasMedicasPort {
     }
 
     // Transforma la entidad de infraestructura al modelo de dominio
-    private toDomain(citaMedicaEntity: CitaMedicaEntity): CitaMedicaDomain {
+    private toDomain(citaMedicaEntity: CitaMedicaEntity): any {
         return {
             id_cita: citaMedicaEntity.id_cita,
             paciente: citaMedicaEntity.paciente ? citaMedicaEntity.paciente.id_paciente : 0,
@@ -29,7 +30,13 @@ export class CitasMedicasAdapter implements CitasMedicasPort {
             fecha_creacion: citaMedicaEntity.fecha_creacion,
             fecha_modificacion: citaMedicaEntity.fecha_modificacion,
             cancelado_por: citaMedicaEntity.cancelado_por,
-            motivo_cancelacion: citaMedicaEntity.motivo_cancelacion
+            motivo_cancelacion: citaMedicaEntity.motivo_cancelacion,
+            paciente_data: citaMedicaEntity.paciente && citaMedicaEntity.paciente.usuario ? {
+                id_paciente: citaMedicaEntity.paciente.id_paciente,
+                nombre: citaMedicaEntity.paciente.usuario.nombre,
+                apellido: citaMedicaEntity.paciente.usuario.apellido,
+                correo: citaMedicaEntity.paciente.usuario.correo
+            } : null
         };
     }
 
@@ -176,28 +183,34 @@ export class CitasMedicasAdapter implements CitasMedicasPort {
         }
     }
 
-    async getCitasMedicasByPaciente(paciente: number): Promise<CitaMedicaDomain[]> {
+    async getCitasMedicasByPaciente(paciente: number): Promise<any[]> {
         try {
             const citas = await this.citaMedicaRepository.find({ 
                 where: { paciente: { id_paciente: paciente } }, 
-                relations: ["paciente", "medico"],
+                relations: ["paciente", "medico", "medico.usuario", "medico.id_especialidad"],
                 order: { fecha_cita: 'ASC', hora_inicio: 'ASC' }
             });
-            return citas.map(cita => this.toDomain(cita));
+            // Filtrar las canceladas por paciente
+            return citas
+                .filter(cita => !(cita.estado === 'cancelada' && cita.cancelado_por === 'paciente'))
+                .map(cita => this.toDomainWithMedicoData(cita));
         } catch (error) {
             console.error("Error fetching citas médicas by paciente:", error);
             throw new Error("Failed to fetch citas médicas by paciente");
         }
     }
 
-    async getCitasMedicasByMedico(medico: number): Promise<CitaMedicaDomain[]> {
+    async getCitasMedicasByMedico(medico: number): Promise<any[]> {
         try {
             const citas = await this.citaMedicaRepository.find({ 
                 where: { medico: { id_medico: medico } }, 
-                relations: ["paciente", "medico"],
+                relations: ["paciente", "paciente.usuario", "medico"],
                 order: { fecha_cita: 'ASC', hora_inicio: 'ASC' }
             });
-            return citas.map(cita => this.toDomain(cita));
+            // Filtrar las canceladas por paciente
+            return citas
+                .filter(cita => !(cita.estado === 'cancelada' && cita.cancelado_por === 'paciente'))
+                .map(cita => this.toDomain(cita));
         } catch (error) {
             console.error("Error fetching citas médicas by médico:", error);
             throw new Error("Failed to fetch citas médicas by médico");
@@ -234,15 +247,19 @@ export class CitasMedicasAdapter implements CitasMedicasPort {
 
     async getCitasMedicasByMedicoAndFecha(medico: number, fecha: Date): Promise<CitaMedicaDomain[]> {
         try {
-            const citas = await this.citaMedicaRepository.find({ 
-                where: { 
-                    medico: { id_medico: medico },
-                    fecha_cita: fecha 
-                }, 
-                relations: ["paciente", "medico"],
-                order: { hora_inicio: 'ASC' }
-            });
-            return citas.map(cita => this.toDomain(cita));
+            // Convertir la fecha a string YYYY-MM-DD
+            const fechaStr = fecha instanceof Date ? fecha.toISOString().split('T')[0] : String(fecha);
+            const citas = await this.citaMedicaRepository.createQueryBuilder('cita')
+                .leftJoinAndSelect('cita.paciente', 'paciente')
+                .leftJoinAndSelect('cita.medico', 'medico')
+                .where('cita.medico = :medicoId', { medicoId: medico })
+                .andWhere('DATE(cita.fecha_cita) = :fecha', { fecha: fechaStr })
+                .orderBy('cita.hora_inicio', 'ASC')
+                .getMany();
+            // Filtrar las canceladas por paciente
+            return citas
+                .filter(cita => !(cita.estado === 'cancelada' && cita.cancelado_por === 'paciente'))
+                .map(cita => this.toDomain(cita));
         } catch (error) {
             console.error("Error fetching citas médicas by médico and fecha:", error);
             throw new Error("Failed to fetch citas médicas by médico and fecha");
@@ -305,6 +322,32 @@ export class CitasMedicasAdapter implements CitasMedicasPort {
             console.error("Error fetching citas médicas vencidas:", error);
             throw new Error("Failed to fetch citas médicas vencidas");
         }
+    }
+
+    private toDomainWithMedicoData(citaMedicaEntity: CitaMedicaEntity): any {
+        return {
+            id_cita: citaMedicaEntity.id_cita,
+            paciente: citaMedicaEntity.paciente ? citaMedicaEntity.paciente.id_paciente : 0,
+            medico: citaMedicaEntity.medico ? citaMedicaEntity.medico.id_medico : 0,
+            fecha_cita: citaMedicaEntity.fecha_cita,
+            hora_inicio: citaMedicaEntity.hora_inicio,
+            hora_fin: citaMedicaEntity.hora_fin,
+            estado: citaMedicaEntity.estado,
+            motivo_consulta: citaMedicaEntity.motivo_consulta,
+            observaciones: citaMedicaEntity.observaciones,
+            fecha_creacion: citaMedicaEntity.fecha_creacion,
+            fecha_modificacion: citaMedicaEntity.fecha_modificacion,
+            cancelado_por: citaMedicaEntity.cancelado_por,
+            motivo_cancelacion: citaMedicaEntity.motivo_cancelacion,
+            medico_data: citaMedicaEntity.medico && citaMedicaEntity.medico.usuario ? {
+                id_medico: citaMedicaEntity.medico.id_medico,
+                nombre: citaMedicaEntity.medico.usuario.nombre,
+                apellido: citaMedicaEntity.medico.usuario.apellido,
+                especialidad: citaMedicaEntity.medico.id_especialidad && citaMedicaEntity.medico.id_especialidad.nombre
+                    ? citaMedicaEntity.medico.id_especialidad.nombre
+                    : null
+            } : null
+        };
     }
 }
 

@@ -91,4 +91,9 @@ export const patientService = {
     updateStreak: async (patientId: number): Promise<{ racha: number; mensaje: string }> => {
         return api.put(`/paciente/${patientId}/racha`, {});
     },
+
+    // Sustraer puntos al paciente
+    subtractPoints: async (pacienteId: number, puntos: number) => {
+        return api.post(`/paciente/${pacienteId}/puntos/sustraer`, { puntos });
+    },
 }; 

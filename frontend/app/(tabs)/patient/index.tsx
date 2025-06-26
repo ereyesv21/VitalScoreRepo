@@ -8,6 +8,8 @@ import { authService } from '../../../services/auth';
 import { Ionicons, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { useFonts } from 'expo-font';
 import { rewardsService, Reward } from '../../../services/rewards';
+import { appointmentsService } from '../../../services/appointments';
+import { tasksService, tareasPacienteService, TareaPaciente } from '../../../services/tasks';
 
 const quickAccessItems = [
   {
@@ -62,7 +64,39 @@ const learnTopics = [
     color: '#8b5cf6',
     bgColor: 'rgba(139, 92, 246, 0.1)',
     content: 'Tu salud mental es tan importante como tu salud física. Practicar la meditación, dormir lo suficiente, y mantener relaciones sociales saludables son pasos clave para un bienestar integral. ¡No estás solo!'
-  }
+  },
+  {
+    id: 'epoc',
+    title: 'Prevén la EPOC',
+    icon: 'lungs' as const,
+    color: '#10b981',
+    bgColor: 'rgba(16, 185, 129, 0.1)',
+    content: 'La Enfermedad Pulmonar Obstructiva Crónica (EPOC) es prevenible evitando el tabaquismo y la exposición a contaminantes. Si tienes tos crónica o dificultad para respirar, consulta a tu médico.'
+  },
+  {
+    id: 'cancer',
+    title: 'Prevención del Cáncer',
+    icon: 'ribbon' as const,
+    color: '#f59e42',
+    bgColor: 'rgba(245, 158, 66, 0.1)',
+    content: 'Muchos tipos de cáncer pueden prevenirse con chequeos regulares, evitando el tabaco, el alcohol y manteniendo una dieta saludable. La detección temprana salva vidas.'
+  },
+  {
+    id: 'renal',
+    title: 'Salud Renal',
+    icon: 'tint-slash' as const,
+    color: '#6366f1',
+    bgColor: 'rgba(99, 102, 241, 0.1)',
+    content: 'La enfermedad renal crónica puede prevenirse controlando la presión arterial, el azúcar en sangre y evitando el uso excesivo de medicamentos sin receta. Bebe suficiente agua y hazte chequeos periódicos.'
+  },
+  {
+    id: 'cerebrovascular',
+    title: 'Prevén Enfermedad Cerebrovascular',
+    icon: 'brain' as const,
+    color: '#f43f5e',
+    bgColor: 'rgba(244, 63, 94, 0.1)',
+    content: 'Los accidentes cerebrovasculares pueden prevenirse controlando la hipertensión, el colesterol y evitando el sedentarismo. Reconoce los síntomas de alarma y actúa rápido.'
+  },
 ];
 
 export default function PatientDashboard() {
@@ -72,16 +106,37 @@ export default function PatientDashboard() {
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState<(typeof learnTopics)[0] | null>(null);
+  const [upcomingAppointments, setUpcomingAppointments] = useState<any[]>([]);
+  const [completedTasks, setCompletedTasks] = useState<any[]>([]);
+  const [consecutiveDays, setConsecutiveDays] = useState(0);
+  const [pendingTasks, setPendingTasks] = useState<TareaPaciente[]>([]);
 
   useEffect(() => {
     loadDashboardData();
+    fetchUpcomingAppointments();
   }, []);
+
+  // Recarga automática cada 10 segundos
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadDashboardData();
+    }, 10000); // 10 segundos
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (patientData?.id_paciente) {
+      fetchCompletedTasks(patientData.id_paciente);
+      fetchPendingTasks(patientData.id_paciente);
+    }
+  }, [patientData?.id_paciente]);
 
   const loadDashboardData = async () => {
     try {
       setLoading(true);
       // Cargar nombre de usuario desde AsyncStorage para una bienvenida inmediata
-      const userDataString = await AsyncStorage.getItem('userData');
+      const userDataString = await AsyncStorage.getItem('user');
+      console.log('[loadDashboardData] userDataString:', userDataString);
       if (userDataString) {
         const userData = JSON.parse(userDataString);
         setUserName(userData.nombre || 'Paciente');
@@ -99,6 +154,84 @@ export default function PatientDashboard() {
       Alert.alert('Error', 'No se pudo cargar la información del dashboard');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchCompletedTasks = async (patientId: number) => {
+    try {
+      const tasks = await tasksService.getCompletedTasksByPatient(patientId);
+      setCompletedTasks(tasks);
+      setConsecutiveDays(calculateConsecutiveDays(tasks));
+    } catch (error) {
+      setCompletedTasks([]);
+      setConsecutiveDays(0);
+    }
+  };
+
+  const fetchPendingTasks = async (patientId: number) => {
+    try {
+      const tasks = await tareasPacienteService.getTareasPorPaciente(patientId);
+      const pendientes = tasks.filter((t: TareaPaciente) => t.estado === 'pendiente');
+      setPendingTasks(pendientes);
+    } catch {
+      setPendingTasks([]);
+    }
+  };
+
+  // Calcula los días consecutivos a partir de las fechas de las tareas completadas
+  const calculateConsecutiveDays = (tasks: any[]): number => {
+    if (!tasks || tasks.length === 0) return 0;
+    // Obtener fechas únicas de tareas completadas (en formato yyyy-mm-dd)
+    const datesSet = new Set(
+      tasks.map((t) => t.fecha_completada?.slice(0, 10) || t.fecha_fin?.slice(0, 10)).filter(Boolean)
+    );
+    const dates = Array.from(datesSet).sort();
+    if (dates.length === 0) return 0;
+    // Convertir a objetos Date
+    const dateObjs = dates.map((d) => new Date(d + 'T00:00:00'));
+    // Calcular racha desde el día más reciente hacia atrás
+    let streak = 1;
+    for (let i = dateObjs.length - 1; i > 0; i--) {
+      const diff = (dateObjs[i].getTime() - dateObjs[i - 1].getTime()) / (1000 * 60 * 60 * 24);
+      if (diff === 1) {
+        streak++;
+      } else if (diff > 1) {
+        break;
+      }
+    }
+    // Si la última fecha no es hoy, la racha se corta
+    const today = new Date();
+    const lastDate = dateObjs[dateObjs.length - 1];
+    if (
+      lastDate.getFullYear() !== today.getFullYear() ||
+      lastDate.getMonth() !== today.getMonth() ||
+      lastDate.getDate() !== today.getDate()
+    ) {
+      // La racha terminó antes de hoy
+      return streak - 1 >= 0 ? streak - 1 : 0;
+    }
+    return streak;
+  };
+
+  const fetchUpcomingAppointments = async () => {
+    try {
+      const citas = await appointmentsService.getMyAppointments();
+      const now = new Date();
+      // Filtrar solo citas futuras y ordenarlas por fecha y hora
+      const futuras = (Array.isArray(citas) ? citas : [])
+        .filter((c: any) => {
+          const fechaHora = new Date(`${c.fecha_cita}T${c.hora_inicio}`);
+          return fechaHora >= now;
+        })
+        .sort((a: any, b: any) => {
+          const fechaA = new Date(`${a.fecha_cita}T${a.hora_inicio}`);
+          const fechaB = new Date(`${b.fecha_cita}T${b.hora_inicio}`);
+          return fechaA.getTime() - fechaB.getTime();
+        })
+        .slice(0, 3); // Solo las próximas 3
+      setUpcomingAppointments(futuras);
+    } catch {
+      setUpcomingAppointments([]);
     }
   };
 
@@ -167,7 +300,8 @@ export default function PatientDashboard() {
             </TouchableOpacity>
           ))}
         </View>
-        
+
+        {/* Tarjeta grande de Tu VitalScore */}
         <View style={styles.card}>
           <View style={styles.cardTitleContainer}>
             <Ionicons name="star-outline" size={22} color={Colors.primary.main} />
@@ -210,7 +344,13 @@ export default function PatientDashboard() {
             <FontAwesome5 name="tasks" size={20} color={Colors.primary.contrast} />
             <Text style={styles.infoCardTitle}>Tareas Pendientes</Text>
           </View>
-          <Text style={styles.infoCardSubtitle}>No tienes tareas pendientes. ¡Buen trabajo!</Text>
+          {pendingTasks.length === 0 ? (
+            <Text style={styles.infoCardSubtitle}>No tienes tareas pendientes. ¡Buen trabajo!</Text>
+          ) : (
+            <Text style={styles.infoCardSubtitle}>
+              Tienes {pendingTasks.length} tarea{pendingTasks.length > 1 ? 's' : ''} pendiente{pendingTasks.length > 1 ? 's' : ''}.
+            </Text>
+          )}
           <TouchableOpacity 
             style={styles.infoCardButton}
             onPress={() => router.push('/(tabs)/patient/assignments')}
@@ -224,7 +364,28 @@ export default function PatientDashboard() {
             <MaterialIcons name="event" size={22} color={Colors.secondary.contrast} />
             <Text style={styles.infoCardTitle}>Citas Agendadas</Text>
           </View>
-          <Text style={styles.infoCardSubtitle}>No tienes citas agendadas próximamente.</Text>
+          {upcomingAppointments.length === 0 ? (
+            <Text style={styles.infoCardSubtitle}>No tienes citas agendadas próximamente.</Text>
+          ) : (
+            upcomingAppointments.map((cita, i) => (
+              <View key={cita.id_cita || i} style={{ backgroundColor: '#fff', borderRadius: 8, padding: 10, marginBottom: 8 }}>
+                <Text style={{ fontWeight: 'bold', color: Colors.secondary.main }}>
+                  Médico: {cita.medico_data ? `${cita.medico_data.nombre} ${cita.medico_data.apellido}` : ''}
+                </Text>
+                {cita.medico_data?.especialidad && (
+                  <Text style={{ color: Colors.secondary.main }}>
+                    Especialidad: {cita.medico_data.especialidad}
+                  </Text>
+                )}
+                <Text style={{ color: Colors.grey[800] }}>
+                  Fecha: {cita.fecha_cita} - {cita.hora_inicio}
+                </Text>
+                <Text style={{ color: Colors.grey[800] }}>
+                  Estado: {cita.estado === 'cancelada' ? 'Cancelado' : cita.estado}
+                </Text>
+              </View>
+            ))
+          )}
           <TouchableOpacity 
             style={styles.infoCardButton}
             onPress={() => router.push('/(tabs)/patient/appointments')}

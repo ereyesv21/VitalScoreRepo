@@ -4,16 +4,19 @@ import bcrypt from 'bcryptjs';
 import { AuthService } from './AuthService';
 import { PacientesAdapter } from '../infraestructure/adapter/PacientesAdapter';
 import { MedicoAdapter } from '../infraestructure/adapter/MedicoAdapter';
+import { AdministradoresApplicationService } from './AdministradoresApplicationService';
 
 export class UsuariosApplicationService {
     private readonly usuariosPort: UsuariosPort;
     private readonly pacientesAdapter: PacientesAdapter;
     private readonly medicoAdapter: MedicoAdapter;
+    private readonly administradoresAppService?: AdministradoresApplicationService;
 
-    constructor(usuariosPort: UsuariosPort, pacientesAdapter: PacientesAdapter, medicoAdapter: MedicoAdapter) {
+    constructor(usuariosPort: UsuariosPort, pacientesAdapter: PacientesAdapter, medicoAdapter: MedicoAdapter, administradoresAppService?: AdministradoresApplicationService) {
         this.usuariosPort = usuariosPort;
         this.pacientesAdapter = pacientesAdapter;
         this.medicoAdapter = medicoAdapter;
+        this.administradoresAppService = administradoresAppService;
     }
 
      //Login 
@@ -106,5 +109,10 @@ export class UsuariosApplicationService {
             eps: profileData.eps
         };
         return await this.medicoAdapter.createMedico(medicoData);
+    }
+
+    async createAdministradorProfile(usuarioId: number): Promise<number | undefined> {
+        if (!this.administradoresAppService) throw new Error('Servicio de administradores no disponible');
+        return await this.administradoresAppService.createAdministrador({ usuario: usuarioId });
     }
 } 

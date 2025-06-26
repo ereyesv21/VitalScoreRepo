@@ -60,39 +60,37 @@ export default function LoginScreen() {
 
     setLoading(true);
     try {
-      console.log('🌐 Enviando login:', { correo: email, contraseña: password });
-      
+      console.log('Intentando login con:', { correo: email, contraseña: password });
       const response = await api.post('/login', {
         correo: email,
         contraseña: password,
       });
+      console.log('Respuesta completa del login:', response);
 
-      console.log('✅ Respuesta del login:', response);
-
-      // Guardar token en AsyncStorage
+      // Guardar token y datos del usuario (soporta tanto 'user' como 'usuario')
       await AsyncStorage.setItem('token', response.token);
-      await AsyncStorage.setItem('userRole', response.rol);
-      await AsyncStorage.setItem('userData', JSON.stringify(response.usuario));
+      const userObj = response.user || response.usuario;
+      await AsyncStorage.setItem('user', JSON.stringify(userObj));
+      await AsyncStorage.setItem('userRole', userObj && userObj.rol ? userObj.rol.toString() : (response.rol || ''));
+      console.log('💾 Usuario guardado en AsyncStorage:', userObj);
 
-      console.log('💾 Datos guardados:', { 
-        token: response.token, 
-        rol: response.rol, 
-        usuario: response.usuario 
-      });
-
-      // Redirigir según el rol
-      if (response.rol === 'paciente') {
-        console.log('🔄 Redirigiendo a paciente...');
-        // @ts-ignore
-        router.push('/(tabs)/patient/');
-      } else if (response.rol === 'medico') {
-        console.log('🔄 Redirigiendo a médico...');
-        // @ts-ignore
-        router.push('/(tabs)/doctor/');
+      // Redirigir según el rol (soporta numérico o string)
+      const rol = userObj && userObj.rol ? userObj.rol : response.rol;
+      if (rol === 1 || rol === 'paciente') {
+        console.log('Intentando navegar a /patient');
+        router.replace('/(tabs)/patient');
+      } else if (rol === 3 || rol === 'administrador') {
+        console.log('Intentando navegar a /admin');
+        router.replace('/(tabs)/admin');
+      } else if (rol === 2 || rol === 'medico') {
+        console.log('Intentando navegar a /doctor');
+        router.replace('/(tabs)/doctor');
       } else {
-        console.log('❌ Rol no reconocido:', response.rol);
         Alert.alert('Error', 'Rol no reconocido');
       }
+      // Log final de verificación
+      const userSaved = await AsyncStorage.getItem('user');
+      console.log('Usuario en AsyncStorage tras login:', userSaved);
     } catch (error: any) {
       console.error('❌ Error en login:', error);
       Alert.alert(

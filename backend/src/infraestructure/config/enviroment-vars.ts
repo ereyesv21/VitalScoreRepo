@@ -60,3 +60,9 @@ const loadEnvVars = (): ReturnEnviromentVars => {
         DB_SCHEMA: value.DB_SCHEMA
     }
 }
+
+// Exportar las variables de entorno cargadas
+export const envVars = loadEnvVars();
+
+// Exportar la función para uso interno
+export { loadEnvVars };

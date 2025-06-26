@@ -39,6 +39,7 @@ export interface CreateAppointmentData {
   hora_inicio: string;
   hora_fin: string;
   motivo_consulta?: string;
+  estado?: 'programada' | 'confirmada' | 'en_progreso' | 'completada' | 'cancelada' | 'no_asistio';
 }
 
 export interface UpdateAppointmentData {
@@ -124,8 +125,8 @@ export const appointmentsService = {
     return api.post(`/cita-medica/${id}/confirmar`, {});
   },
 
-  cancelAppointment: async (id: number, motivo?: string): Promise<Appointment> => {
-    return api.post(`/cita-medica/${id}/cancelar`, { motivo_cancelacion: motivo });
+  cancelAppointment: async (id: number, canceladoPor: string, motivo: string): Promise<Appointment> => {
+    return api.post(`/cita-medica/${id}/cancelar`, { cancelado_por: canceladoPor, motivo_cancelacion: motivo });
   },
 
   startAppointment: async (id: number): Promise<Appointment> => {

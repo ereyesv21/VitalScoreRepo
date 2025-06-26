@@ -156,7 +156,7 @@ export class MedicoAdapter implements MedicoPort {
 
     async getAllMedicos(): Promise<MedicoDomain[]> {
         try {
-            const medicos = await this.medicoRepository.find({ relations: ["usuario", "eps"] });
+            const medicos = await this.medicoRepository.find({ relations: ["usuario", "eps", "id_especialidad"] });
             return medicos.map(medico => this.toDomain(medico));
         } catch (error) {
             console.error("Error fetching all medicos:", error);
@@ -164,13 +164,20 @@ export class MedicoAdapter implements MedicoPort {
         }
     }
 
-    async getMedicoByEspecialidad(especialidad: number): Promise<MedicoDomain[]> {
+    async getMedicoByEspecialidad(especialidad: number): Promise<any[]> {
         try {
-            const medicos = await this.medicoRepository.find({ 
-                where: { id_especialidad: { id_especialidad: especialidad } }, 
-                relations: ["usuario", "eps", "id_especialidad"] 
-            });
-            return medicos.map(medico => this.toDomain(medico));
+            const medicos = await this.medicoRepository
+                .createQueryBuilder("medico")
+                .leftJoinAndSelect("medico.usuario", "usuario")
+                .leftJoinAndSelect("medico.eps", "eps")
+                .leftJoinAndSelect("medico.id_especialidad", "especialidad")
+                .where("especialidad.id_especialidad = :especialidadId", { especialidadId: especialidad })
+                .getMany();
+            // Devuelvo el objeto usuario embebido
+            return medicos.map(medico => ({
+                ...medico,
+                usuario: medico.usuario // usuario completo
+            }));
         } catch (error) {
             console.error("Error fetching medicos by especialidad:", error);
             throw new Error("Failed to fetch medicos by especialidad");
@@ -179,10 +186,14 @@ export class MedicoAdapter implements MedicoPort {
 
     async getMedicoByUsuario(usuario: number): Promise<MedicoDomain | null> {
         try {
-            const medico = await this.medicoRepository.findOne({ 
-                where: { usuario: { id_usuario: usuario } }, 
-                relations: ["usuario", "eps"] 
-            });
+            const medico = await this.medicoRepository
+                .createQueryBuilder("medico")
+                .leftJoinAndSelect("medico.usuario", "usuario")
+                .leftJoinAndSelect("medico.eps", "eps")
+                .leftJoinAndSelect("medico.id_especialidad", "especialidad")
+                .where("usuario.id_usuario = :usuarioId", { usuarioId: usuario })
+                .getOne();
+            
             return medico ? this.toDomain(medico) : null;
         } catch (error) {
             console.error("Error fetching medico by usuario:", error);
@@ -192,10 +203,14 @@ export class MedicoAdapter implements MedicoPort {
 
     async getMedicoByEps(eps: number): Promise<MedicoDomain[]> {
         try {
-            const medicos = await this.medicoRepository.find({ 
-                where: { eps: { id_eps: eps } }, 
-                relations: ["usuario", "eps"] 
-            });
+            const medicos = await this.medicoRepository
+                .createQueryBuilder("medico")
+                .leftJoinAndSelect("medico.usuario", "usuario")
+                .leftJoinAndSelect("medico.eps", "eps")
+                .leftJoinAndSelect("medico.id_especialidad", "especialidad")
+                .where("eps.id_eps = :epsId", { epsId: eps })
+                .getMany();
+            
             return medicos.map(medico => this.toDomain(medico));
         } catch (error) {
             console.error("Error fetching medicos by EPS:", error);

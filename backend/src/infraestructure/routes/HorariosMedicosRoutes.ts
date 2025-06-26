@@ -3,12 +3,14 @@ import { HorariosMedicosAdapter } from '../adapter/HorariosMedicosAdapter';
 import { HorariosMedicosApplicationService } from '../../application/HorariosMedicosApplicationService';
 import { HorariosMedicosController } from '../controller/HorariosMedicosController';
 import { authenticateToken } from '../web/authMiddleware';
+import { CitasMedicasAdapter } from '../adapter/CitasMedicasAdapter';
 
 const router = Router();
 
 // Inicialización de las capas
 const horariosMedicosAdapter = new HorariosMedicosAdapter();
-const horariosMedicosAppService = new HorariosMedicosApplicationService(horariosMedicosAdapter);
+const citasMedicasAdapter = new CitasMedicasAdapter();
+const horariosMedicosAppService = new HorariosMedicosApplicationService(horariosMedicosAdapter, citasMedicasAdapter);
 const horariosMedicosController = new HorariosMedicosController(horariosMedicosAppService);
 
 // Definir las rutas con manejo de errores y autenticación
@@ -51,6 +53,11 @@ router.put('/horario-medico/:id', authenticateToken, async (req, res) => {
 // DELETE /api/horario-medico/:id - Eliminar horario
 router.delete('/horario-medico/:id', authenticateToken, async (req, res) => {
     await horariosMedicosController.deleteHorarioMedico(req, res);
+});
+
+// NUEVO ENDPOINT: Obtener horarios disponibles de un médico para una fecha
+router.get('/horarios-medicos/:medicoId/disponibilidad', authenticateToken, async (req, res) => {
+    await horariosMedicosController.getDisponibilidadByMedicoYFecha(req, res);
 });
 
 export default router; 

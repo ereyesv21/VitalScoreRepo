@@ -30,7 +30,54 @@ const completeTask = async (taskId: number): Promise<any> => {
     }
 };
 
+const getCompletedTasksByPatient = async (patientId: number) => {
+    try {
+        const response = await api.get(`/historial-tareas/paciente/${patientId}`);
+        // El backend devuelve { success: true, data: [...] }
+        return response.data || [];
+    } catch (error) {
+        console.error('Error fetching completed tasks by patient:', error);
+        return [];
+    }
+};
+
 export const tasksService = {
     getTasks,
     completeTask,
+    getCompletedTasksByPatient,
+};
+
+// --- TAREAS PACIENTE ---
+
+export interface TareaPaciente {
+    id_tarea_paciente: number;
+    paciente: any;
+    tarea: any;
+    nombre_tarea: string;
+    descripcion: string;
+    diagnostico: string;
+    recomendacion: string;
+    estado: string;
+    fecha_asignacion: string;
+    fecha_completada?: string;
+}
+
+const asignarTareaAPaciente = async (data: Record<string, any>) => {
+    const res = await api.post('/tareas-paciente', data);
+    return res;
+};
+
+const getTareasPorPaciente = async (pacienteId: number): Promise<TareaPaciente[]> => {
+    const res = await api.get(`/tareas-paciente/${pacienteId}`);
+    return res;
+};
+
+const marcarTareaComoCompletada = async (id_tarea_paciente: number) => {
+    return await api.put(`/tareas-paciente/${id_tarea_paciente}/completar`, {});
+};
+
+export const tareasPacienteService = {
+    asignarTareaAPaciente,
+    getTareasPorPaciente,
+    marcarTareaComoCompletada,
 }; 

@@ -26,6 +26,42 @@ export class PacientesAdapter implements PacientePort {
         };
     }
 
+    // Transforma la entidad de infraestructura al modelo de dominio con datos completos
+    private toDomainWithDetails(pacienteEntity: PacienteEntity): any {
+        return {
+            id_paciente: pacienteEntity.id_paciente,
+            puntos: pacienteEntity.puntos,
+            usuario: pacienteEntity.usuario ? pacienteEntity.usuario.id_usuario : 0,
+            id_eps: pacienteEntity.eps ? pacienteEntity.eps.id_eps : 0,
+            racha_dias: pacienteEntity.racha_dias,
+            ultima_fecha_racha: pacienteEntity.ultima_fecha_racha,
+            // Incluir datos del usuario
+            nombre: pacienteEntity.usuario?.nombre,
+            apellido: pacienteEntity.usuario?.apellido,
+            correo: pacienteEntity.usuario?.correo,
+            genero: pacienteEntity.usuario?.genero,
+            estado: pacienteEntity.usuario?.estado,
+            // Incluir datos de la EPS
+            eps_nombre: pacienteEntity.eps?.nombre,
+            // También incluir el objeto completo para compatibilidad
+            usuario_data: pacienteEntity.usuario ? {
+                id_usuario: pacienteEntity.usuario.id_usuario,
+                nombre: pacienteEntity.usuario.nombre,
+                apellido: pacienteEntity.usuario.apellido,
+                correo: pacienteEntity.usuario.correo,
+                genero: pacienteEntity.usuario.genero,
+                estado: pacienteEntity.usuario.estado,
+                rol: pacienteEntity.usuario.rol
+            } : null,
+            eps_data: pacienteEntity.eps ? {
+                id_eps: pacienteEntity.eps.id_eps,
+                nombre: pacienteEntity.eps.nombre,
+                tipo: pacienteEntity.eps.tipo,
+                estado: pacienteEntity.eps.estado
+            } : null
+        };
+    }
+
     // Transforma el modelo de dominio a la entidad de infraestructura
     private toEntity(pacienteDomain: Omit<PacienteDomain, "id_paciente">, usuarioEntity: Usuario, epsEntity: EPS): Omit<PacienteEntity, "id_paciente"> {
         const pacienteEntity = new PacienteEntity();
@@ -138,7 +174,7 @@ export class PacientesAdapter implements PacientePort {
                 where: { id_paciente: id }, 
                 relations: ["usuario", "eps"] 
             });
-            return paciente ? this.toDomain(paciente) : null;
+            return paciente ? this.toDomainWithDetails(paciente) : null;
         } catch (error) {
             console.error("Error fetching paciente by ID:", error);
             throw new Error("Failed to fetch paciente by ID");
@@ -157,10 +193,14 @@ export class PacientesAdapter implements PacientePort {
 
     async getPacienteByUsuario(usuario: number): Promise<PacienteDomain | null> {
         try {
-            const paciente = await this.pacienteRepository.findOne({ 
-                where: { usuario: { id_usuario: usuario } }, 
-                relations: ["usuario", "eps"] 
-            });
+            console.log('[PacientesAdapter] Buscando paciente por usuario:', usuario);
+            const paciente = await this.pacienteRepository
+                .createQueryBuilder("paciente")
+                .leftJoinAndSelect("paciente.usuario", "usuario")
+                .leftJoinAndSelect("paciente.eps", "eps")
+                .where("usuario.id_usuario = :usuarioId", { usuarioId: usuario })
+                .getOne();
+            console.log('[PacientesAdapter] Resultado paciente:', paciente);
             return paciente ? this.toDomain(paciente) : null;
         } catch (error) {
             console.error("Error fetching paciente by usuario:", error);
@@ -170,10 +210,13 @@ export class PacientesAdapter implements PacientePort {
 
     async getPacienteByEps(eps: number): Promise<PacienteDomain[]> {
         try {
-            const pacientes = await this.pacienteRepository.find({ 
-                where: { eps: { id_eps: eps } }, 
-                relations: ["usuario", "eps"] 
-            });
+            const pacientes = await this.pacienteRepository
+                .createQueryBuilder("paciente")
+                .leftJoinAndSelect("paciente.usuario", "usuario")
+                .leftJoinAndSelect("paciente.eps", "eps")
+                .where("eps.id_eps = :epsId", { epsId: eps })
+                .getMany();
+            
             return pacientes.map(paciente => this.toDomain(paciente));
         } catch (error) {
             console.error("Error fetching pacientes by EPS:", error);

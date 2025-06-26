@@ -5,14 +5,31 @@ import { patientService, PatientWithUser } from '../../../services/patients';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { FontAwesome, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
+import { tasksService } from '../../../services/tasks';
 
 export default function PatientProfile() {
   const [patientData, setPatientData] = useState<PatientWithUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [completedTasks, setCompletedTasks] = useState<any[]>([]);
+  const [consecutiveDays, setConsecutiveDays] = useState(0);
 
   useEffect(() => {
     loadPatientData();
   }, []);
+
+  // Recarga automática cada 5 minutos
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadPatientData();
+    }, 300000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (patientData?.id_paciente) {
+      fetchCompletedTasks(patientData.id_paciente);
+    }
+  }, [patientData?.id_paciente]);
 
   const loadPatientData = async () => {
     try {
@@ -25,6 +42,55 @@ export default function PatientProfile() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchCompletedTasks = async (patientId: number) => {
+    try {
+      const tasks = await tasksService.getCompletedTasksByPatient(patientId);
+      console.log('Tareas completadas recibidas:', tasks);
+      setCompletedTasks(tasks);
+      const dias = calculateConsecutiveDays(tasks);
+      console.log('Días consecutivos calculados:', dias);
+      setConsecutiveDays(dias);
+    } catch (error) {
+      setCompletedTasks([]);
+      setConsecutiveDays(0);
+    }
+  };
+
+  // Calcula los días consecutivos a partir de las fechas de las tareas completadas
+  const calculateConsecutiveDays = (tasks: any[]): number => {
+    if (!tasks || tasks.length === 0) return 0;
+    // Obtener fechas únicas de tareas completadas (en formato yyyy-mm-dd)
+    const datesSet = new Set(
+      tasks.map((t) => t.fecha_completada?.slice(0, 10) || t.fecha_fin?.slice(0, 10)).filter(Boolean)
+    );
+    const dates = Array.from(datesSet).sort();
+    if (dates.length === 0) return 0;
+    // Convertir a objetos Date
+    const dateObjs = dates.map((d) => new Date(d + 'T00:00:00'));
+    // Calcular racha desde el día más reciente hacia atrás
+    let streak = 1;
+    for (let i = dateObjs.length - 1; i > 0; i--) {
+      const diff = (dateObjs[i].getTime() - dateObjs[i - 1].getTime()) / (1000 * 60 * 60 * 24);
+      if (diff === 1) {
+        streak++;
+      } else if (diff > 1) {
+        break;
+      }
+    }
+    // Si la última fecha no es hoy, la racha se corta
+    const today = new Date();
+    const lastDate = dateObjs[dateObjs.length - 1];
+    if (
+      lastDate.getFullYear() !== today.getFullYear() ||
+      lastDate.getMonth() !== today.getMonth() ||
+      lastDate.getDate() !== today.getDate()
+    ) {
+      // La racha terminó antes de hoy
+      return streak - 1 >= 0 ? streak - 1 : 0;
+    }
+    return streak;
   };
 
   const handleLogout = async () => {
@@ -92,25 +158,6 @@ export default function PatientProfile() {
           <View style={styles.infoRow}>
             <Text style={styles.infoLabel}>EPS:</Text>
             <Text style={styles.infoValue}>{patientData.eps_data?.nombre}</Text>
-          </View>
-        </View>
-
-        <View style={styles.card}>
-          <View style={styles.cardTitleContainer}>
-            <FontAwesome5 name="chart-line" size={18} color={Colors.primary.main} />
-            <Text style={styles.cardTitle}>Estadísticas VitalScore</Text>
-          </View>
-          <View style={styles.statsRow}>
-            <Text style={styles.statsLabel}>Puntos actuales:</Text>
-            <Text style={styles.statsValue}>{patientData.puntos?.toLocaleString()}</Text>
-          </View>
-          <View style={styles.statsRow}>
-            <Text style={styles.statsLabel}>Tareas completadas:</Text>
-            <Text style={styles.statsValue}>45</Text>
-          </View>
-          <View style={styles.statsRow}>
-            <Text style={styles.statsLabel}>Días consecutivos:</Text>
-            <Text style={styles.statsValue}>12</Text>
           </View>
         </View>
 
@@ -202,23 +249,6 @@ const styles = StyleSheet.create({
   infoValue: {
     fontSize: 16,
     color: Colors.grey[800],
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.grey[200],
-  },
-  statsLabel: {
-    fontSize: 16,
-    color: Colors.grey[600],
-    fontWeight: '500',
-  },
-  statsValue: {
-    fontSize: 16,
-    color: Colors.primary.main,
-    fontWeight: '600',
   },
   editButton: {
     backgroundColor: Colors.primary.main,

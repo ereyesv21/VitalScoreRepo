@@ -17,7 +17,7 @@
     "@types/express": "^5.0.3",
     "@types/jsonwebtoken": "^9.0.9",
     "nodemon": "^3.1.10",
-    "typescritp": "^1.0.0"
+    "typescript": "^1.0.0"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

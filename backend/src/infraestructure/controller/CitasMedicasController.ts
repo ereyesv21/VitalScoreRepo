@@ -10,49 +10,65 @@ export class CitasMedicasController {
     }
 
     async createCitaMedica(req: Request, res: Response): Promise<void> {
+        console.log('[CitasMedicasController] Iniciando creación de cita médica');
+        console.log('[CitasMedicasController] Body recibido:', JSON.stringify(req.body, null, 2));
+        
         try {
             const { paciente, medico, fecha_cita, hora_inicio, hora_fin, estado, motivo_consulta, observaciones } = req.body;
 
+            console.log('[CitasMedicasController] Datos extraídos:', {
+                paciente, medico, fecha_cita, hora_inicio, hora_fin, estado, motivo_consulta, observaciones
+            });
+
             // Validaciones de entrada
             if (!paciente || typeof paciente !== 'number') {
+                console.log('[CitasMedicasController] Error: paciente inválido');
                 res.status(400).json({ error: "El campo 'paciente' es requerido y debe ser un número" });
                 return;
             }
 
             if (!medico || typeof medico !== 'number') {
+                console.log('[CitasMedicasController] Error: medico inválido');
                 res.status(400).json({ error: "El campo 'medico' es requerido y debe ser un número" });
                 return;
             }
 
             if (!fecha_cita) {
+                console.log('[CitasMedicasController] Error: fecha_cita faltante');
                 res.status(400).json({ error: "El campo 'fecha_cita' es requerido" });
                 return;
             }
 
             if (!hora_inicio || typeof hora_inicio !== 'string') {
+                console.log('[CitasMedicasController] Error: hora_inicio inválida');
                 res.status(400).json({ error: "El campo 'hora_inicio' es requerido y debe ser una cadena" });
                 return;
             }
 
             if (!hora_fin || typeof hora_fin !== 'string') {
+                console.log('[CitasMedicasController] Error: hora_fin inválida');
                 res.status(400).json({ error: "El campo 'hora_fin' es requerido y debe ser una cadena" });
                 return;
             }
 
             if (paciente <= 0) {
+                console.log('[CitasMedicasController] Error: paciente <= 0');
                 res.status(400).json({ error: "El ID del paciente debe ser un número positivo" });
                 return;
             }
 
             if (medico <= 0) {
+                console.log('[CitasMedicasController] Error: medico <= 0');
                 res.status(400).json({ error: "El ID del médico debe ser un número positivo" });
                 return;
             }
 
+            console.log('[CitasMedicasController] Todas las validaciones pasaron, creando objeto citaData');
+
             const citaData: Omit<CitasMedicas, "id_cita" | "fecha_creacion" | "fecha_modificacion"> = {
                 paciente,
                 medico,
-                fecha_cita: new Date(fecha_cita),
+                fecha_cita: fecha_cita,
                 hora_inicio,
                 hora_fin,
                 estado: estado || 'programada',
@@ -60,13 +76,21 @@ export class CitasMedicasController {
                 observaciones
             };
 
+            console.log('[CitasMedicasController] citaData creado:', JSON.stringify(citaData, null, 2));
+            console.log('[CitasMedicasController] Llamando a applicationService.createCitaMedica');
+
             const idCita = await this.citasMedicasApplicationService.createCitaMedica(citaData);
+            
+            console.log('[CitasMedicasController] Cita creada exitosamente con ID:', idCita);
+            
             res.status(201).json({ 
                 message: "Cita médica creada exitosamente", 
                 id_cita: idCita 
             });
         } catch (error) {
-            console.error("Error al crear cita médica:", error);
+            console.error("[CitasMedicasController] Error al crear cita médica:", error);
+            console.error("[CitasMedicasController] Stack trace:", error instanceof Error ? error.stack : 'No stack trace available');
+            
             if (error instanceof Error) {
                 res.status(400).json({ error: error.message });
             } else {
@@ -121,6 +145,39 @@ export class CitasMedicasController {
             res.status(200).json(citas);
         } catch (error) {
             console.error("Error al obtener citas médicas por paciente:", error);
+            if (error instanceof Error) {
+                res.status(400).json({ error: error.message });
+            } else {
+                res.status(500).json({ error: "Error interno del servidor" });
+            }
+        }
+    }
+
+    // Nuevo método: Obtener citas del paciente actual (logueado)
+    async getCitasMedicasByPacienteCurrent(req: Request, res: Response): Promise<void> {
+        console.log('[CitasMedicasController] Entrando a getCitasMedicasByPacienteCurrent');
+        try {
+            // Obtener el ID del usuario desde el token JWT
+            const userId = (req as any).user?.id;
+            console.log('[CitasMedicasController] userId extraído del token:', userId);
+            if (!userId) {
+                res.status(401).json({ error: "Usuario no autenticado" });
+                return;
+            }
+
+            // Buscar el paciente por el ID del usuario
+            const paciente = await this.citasMedicasApplicationService.getPacienteByUsuario(userId);
+            console.log('[CitasMedicasController] Paciente encontrado para userId', userId, ':', paciente);
+            if (!paciente) {
+                res.status(404).json({ error: "Paciente no encontrado para este usuario" });
+                return;
+            }
+
+            const citas = await this.citasMedicasApplicationService.getCitasMedicasByPaciente(paciente.id_paciente);
+            console.log('[CitasMedicasController] Citas encontradas para paciente', paciente.id_paciente, ':', citas.length);
+            res.status(200).json(citas);
+        } catch (error) {
+            console.error("Error al obtener citas médicas del paciente actual:", error);
             if (error instanceof Error) {
                 res.status(400).json({ error: error.message });
             } else {

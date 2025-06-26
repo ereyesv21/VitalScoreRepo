@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, Image, Alert, Linking, Clipboard } from 'react-native';
 import { Colors } from '../../../constants/Colors';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { rewardsService, Reward } from '../../../services/rewards';
@@ -12,9 +12,23 @@ export default function RewardsScreen() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('Todas');
   const [searchQuery, setSearchQuery] = useState('');
+  const [patientId, setPatientId] = useState<number | null>(null);
+  const [showRedeemModal, setShowRedeemModal] = useState(false);
+  const [selectedReward, setSelectedReward] = useState<Reward | null>(null);
+  const [redeemCode, setRedeemCode] = useState('');
 
   useEffect(() => {
     loadData();
+  }, []);
+
+  // Recarga automática cada 10 segundos
+  useEffect(() => {
+    const interval = setInterval(() => {
+      patientService.getCurrentPatient().then(patientData => {
+        setPatientPoints(patientData.puntos || 0);
+      });
+    }, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -31,6 +45,7 @@ export default function RewardsScreen() {
       setAllRewards(rewardsData);
       setFilteredRewards(rewardsData);
       setPatientPoints(patientData.puntos || 0);
+      setPatientId(patientData.id_paciente);
     } catch (error) {
       Alert.alert('Error', 'No se pudieron cargar los datos de recompensas.');
     } finally {
@@ -59,6 +74,77 @@ export default function RewardsScreen() {
     setFilteredRewards(tempRewards);
   };
 
+  // Función para generar un código aleatorio
+  const generateCode = () => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = '';
+    for (let i = 0; i < 8; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+    return code;
+  };
+
+  // Función para canjear recompensa
+  const handleRedeem = async (reward: Reward) => {
+    setSelectedReward(reward);
+    setShowRedeemModal(true);
+  };
+
+  const confirmRedeem = async () => {
+    if (!selectedReward) return;
+    if (patientPoints < selectedReward.puntos_necesarios) {
+      Alert.alert('No tienes suficientes puntos para canjear esta recompensa.');
+      setShowRedeemModal(false);
+      return;
+    }
+    if (!patientId) {
+      Alert.alert('Error', 'No se pudo identificar al paciente.');
+      setShowRedeemModal(false);
+      return;
+    }
+    try {
+      await patientService.subtractPoints(patientId, selectedReward.puntos_necesarios);
+      setRedeemCode(generateCode());
+    } catch (error) {
+      Alert.alert('Error', 'No se pudo canjear la recompensa.');
+      setShowRedeemModal(false);
+    }
+  };
+
+  // Función mejorada para elegir la imagen según el nombre o descripción de la recompensa
+  const getImageForReward = (rewardName: string, descripcion: string = '') => {
+    const text = (rewardName + ' ' + (descripcion || '')).toLowerCase();
+
+    // Imagen especial para cualquier variante de 'consulta gratis'
+    if (text.includes('consulta') && (text.includes('gratis') || text.includes('gratuita')))
+      return 'https://images.unsplash.com/photo-1503437313881-503a91226419?auto=format&fit=crop&w=800&q=80'; // doctor profesional
+
+    if (text.includes('consulta') || text.includes('médico') || text.includes('doctor'))
+      return 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd2e?auto=format&fit=crop&w=800&q=80'; // consulta médica
+
+    if (text.includes('descuento') || text.includes('bono') || text.includes('cupón'))
+      return 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80'; // descuento
+
+    if (text.includes('kit') || text.includes('termómetro') || text.includes('botella') || text.includes('termo'))
+      return 'https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=800&q=80'; // kit
+
+    if (text.includes('charla') || text.includes('acceso') || text.includes('evento') || text.includes('webinar'))
+      return 'https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=800&q=80'; // charla/evento
+
+    if (text.includes('yoga') || text.includes('gimnasio') || text.includes('ejercicio') || text.includes('fitness'))
+      return 'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=800&q=80'; // yoga/gym
+
+    if (text.includes('masaje') || text.includes('spa') || text.includes('relajación'))
+      return 'https://images.unsplash.com/photo-1504196606672-aef5c9cefc92?auto=format&fit=crop&w=800&q=80'; // masaje/spa
+
+    if (text.includes('nutrición') || text.includes('alimentación') || text.includes('dieta'))
+      return 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80'; // nutrición
+
+    if (text.includes('fruta') || text.includes('fresa') || text.includes('alimento'))
+      return 'https://images.unsplash.com/photo-1464306076886-debca5e8a6b0?auto=format&fit=crop&w=800&q=80'; // frutas
+
+    // Imagen genérica de regalo
+    return 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80';
+  };
+
   const renderContent = () => {
     if (loading) {
       return (
@@ -83,9 +169,9 @@ export default function RewardsScreen() {
       <ScrollView contentContainerStyle={styles.gridContainer}>
         {filteredRewards.map(reward => (
           <View key={reward.id_recompensa} style={styles.rewardCard}>
-            <Image 
-              source={{ uri: `https://picsum.photos/seed/${reward.id_recompensa}/300/200` }} 
-              style={styles.rewardImage} 
+            <Image
+              source={{ uri: getImageForReward(reward.nombre, reward.descripcion) }}
+              style={styles.rewardImage}
             />
             <View style={styles.rewardInfo}>
               <Text style={styles.rewardName}>{reward.nombre}</Text>
@@ -94,6 +180,15 @@ export default function RewardsScreen() {
                 <Ionicons name="star" size={14} color={Colors.primary.main} />
                 <Text style={styles.pointsValue}>{reward.puntos_necesarios.toLocaleString()} pts</Text>
               </View>
+              <TouchableOpacity
+                style={{ marginTop: 10, backgroundColor: Colors.primary.main, borderRadius: 8, paddingVertical: 8, paddingHorizontal: 16 }}
+                onPress={() => handleRedeem(reward)}
+                disabled={patientPoints < reward.puntos_necesarios}
+              >
+                <Text style={{ color: '#fff', fontWeight: 'bold', textAlign: 'center' }}>
+                  Canjear
+                </Text>
+              </TouchableOpacity>
             </View>
           </View>
         ))}
@@ -106,7 +201,7 @@ export default function RewardsScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Recompensas</Text>
         <View style={styles.pointsContainer}>
-          <Ionicons name="star" size={16} color="#FFD700" />
+          <Ionicons name="star" size={22} color="#FFD700" />
           <Text style={styles.pointsText}>{patientPoints.toLocaleString()} puntos</Text>
         </View>
       </View>
@@ -135,6 +230,68 @@ export default function RewardsScreen() {
       </View>
       
       {renderContent()}
+      {/* Modal de canje */}
+      {showRedeemModal && selectedReward && (
+        <View style={{
+          position: 'absolute',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.4)',
+          justifyContent: 'center', alignItems: 'center',
+          zIndex: 1000
+        }}>
+          <View style={{ backgroundColor: '#fff', borderRadius: 16, padding: 24, width: 320, alignItems: 'center' }}>
+            {!redeemCode ? (
+              <>
+                <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 12, textAlign: 'center' }}>
+                  ¿Estás seguro que deseas canjear la recompensa "{selectedReward.nombre}"?
+                </Text>
+                <TouchableOpacity
+                  style={{ backgroundColor: Colors.primary.main, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 24, marginTop: 16, width: '100%' }}
+                  onPress={confirmRedeem}
+                >
+                  <Text style={{ color: '#fff', fontWeight: 'bold', textAlign: 'center' }}>Sí, canjear</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={{ marginTop: 10 }}
+                  onPress={() => { setShowRedeemModal(false); setSelectedReward(null); }}
+                >
+                  <Text style={{ color: Colors.primary.main, fontWeight: 'bold' }}>Cancelar</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 8, textAlign: 'center' }}>
+                  ¡Canje exitoso!
+                </Text>
+                <Text style={{ fontSize: 16, marginBottom: 8, textAlign: 'center' }}>
+                  Has canjeado: <Text style={{ fontWeight: 'bold' }}>{selectedReward.nombre}</Text>
+                </Text>
+                <TouchableOpacity
+                  onPress={() => Linking.openURL(`https://www.google.com/search?q=${encodeURIComponent(selectedReward.nombre)}`)}
+                  style={{ marginBottom: 10 }}
+                >
+                  <Text style={{ color: Colors.primary.main, textDecorationLine: 'underline' }}>
+                    Ir a la página relacionada
+                  </Text>
+                </TouchableOpacity>
+                <Text style={{ fontSize: 16, marginBottom: 8 }}>Tu código de redención:</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
+                  <Text style={{ fontSize: 20, fontWeight: 'bold', letterSpacing: 2, color: Colors.primary.main }}>{redeemCode}</Text>
+                  <TouchableOpacity onPress={() => { Clipboard.setString(redeemCode); Alert.alert('Copiado', 'Código copiado al portapapeles'); }}>
+                    <Ionicons name="copy" size={20} color={Colors.primary.main} style={{ marginLeft: 8 }} />
+                  </TouchableOpacity>
+                </View>
+                <TouchableOpacity
+                  style={{ backgroundColor: Colors.primary.main, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 24, width: '100%' }}
+                  onPress={() => { setShowRedeemModal(false); setSelectedReward(null); setRedeemCode(''); }}
+                >
+                  <Text style={{ color: '#fff', fontWeight: 'bold', textAlign: 'center' }}>Cerrar</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -157,6 +314,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: Colors.primary.contrast,
+    fontFamily: 'SpaceMono',
   },
   pointsContainer: {
     flexDirection: 'row',
@@ -170,6 +328,7 @@ const styles = StyleSheet.create({
     color: Colors.primary.contrast,
     fontWeight: '600',
     marginLeft: 6,
+    fontSize: 20,
   },
   searchAndFilterContainer: {
     padding: 20,
@@ -257,12 +416,6 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  rewardImage: {
-    width: '100%',
-    height: 100,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-  },
   rewardInfo: {
     padding: 12,
   },
@@ -291,5 +444,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     color: Colors.primary.main,
+  },
+  rewardImage: {
+    width: '100%',
+    height: 100,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    resizeMode: 'cover',
   },
 }); 

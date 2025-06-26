@@ -6,9 +6,9 @@ export class Tarea {
     @PrimaryGeneratedColumn({ name: "id_tarea" })
     id_tarea!: number;
 
-    @ManyToOne(() => Plan)
+    @ManyToOne(() => Plan, { nullable: true })
     @JoinColumn({ name: "plan" }) // El campo 'plan' en Tareas es la FK a planes.id_plan
-    plan!: Plan;
+    plan?: Plan;
 
     @Column({ name: "nombre_tarea", type: "varchar", length: 255 })
     nombre_tarea!: string;

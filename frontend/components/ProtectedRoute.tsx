@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
 import { useAuth } from '../hooks/useAuth';
 import { UserRole } from '../services/auth';
@@ -18,6 +18,32 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const { isAuthenticated, role, loading } = useAuth();
 
+  console.log('ProtectedRoute: allowedRoles', allowedRoles, 'userRole', role, 'isAuthenticated', isAuthenticated);
+
+  // Redirección segura usando useEffect
+  useEffect(() => {
+    if (!loading) {
+      if (!isAuthenticated) {
+        router.replace('/auth/login');
+      } else if (role && !allowedRoles.includes(role)) {
+        // Redirigir según el rol
+        switch (role) {
+          case 'paciente':
+            router.replace('/(tabs)/patient');
+            break;
+          case 'medico':
+            router.replace('/(tabs)/doctor');
+            break;
+          case 'administrador':
+            router.replace('/(tabs)/admin');
+            break;
+          default:
+            router.replace('/auth/login');
+        }
+      }
+    }
+  }, [isAuthenticated, role, loading, allowedRoles]);
+
   // Mostrar loading mientras se verifica la autenticación
   if (loading) {
     return (
@@ -28,33 +54,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
-  // Si no está autenticado, redirigir al login
-  if (!isAuthenticated) {
-    router.replace('/auth/login');
-    return null;
-  }
-
-  // Si no tiene el rol permitido, mostrar fallback o redirigir
-  if (role && !allowedRoles.includes(role)) {
-    if (fallback) {
-      return <>{fallback}</>;
-    }
-    
-    // Redirigir según el rol
-    switch (role) {
-      case 'paciente':
-        router.replace('/(tabs)/patient');
-        break;
-      case 'medico':
-        router.replace('/(tabs)/doctor');
-        break;
-      case 'administrador':
-        // Temporalmente redirigir al login hasta que se resuelva el problema de rutas
-        router.replace('/auth/login');
-        break;
-      default:
-        router.replace('/auth/login');
-    }
+  // Si no está autenticado o no tiene el rol permitido, no renderizar nada (la redirección la maneja useEffect)
+  if (!isAuthenticated || (role && !allowedRoles.includes(role))) {
     return null;
   }
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
 import { Colors } from '../../../constants/Colors';
 import { FontAwesome5 } from '@expo/vector-icons';
-import { tasksService, Task } from '../../../services/tasks';
+import { tareasPacienteService, TareaPaciente } from '../../../services/tasks';
 import { patientService } from '../../../services/patients';
 
 // Función para formatear la fecha a un formato legible
@@ -30,7 +30,14 @@ const getIconForTask = (taskName: string): string => {
   return 'clipboard-check';
 };
 
-const TaskItem = ({ task, onComplete }: { task: Task; onComplete: (id: number) => void }) => {
+type TaskLike = {
+  id_tarea: number;
+  nombre_tarea: string;
+  descripcion: string;
+  estado: string;
+};
+
+const TaskItem = ({ task, onComplete }: { task: TaskLike; onComplete: (id: number) => void }) => {
   const isCompleted = task.estado?.toLowerCase() === 'completada';
 
   return (
@@ -58,7 +65,7 @@ const TaskItem = ({ task, onComplete }: { task: Task; onComplete: (id: number) =
 };
 
 export default function PatientAssignments() {
-  const [tasks, setTasks] = useState<Task[]>([]);
+  const [tasks, setTasks] = useState<TareaPaciente[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('Hoy');
   const [patientId, setPatientId] = useState<number | null>(null);
@@ -74,8 +81,10 @@ export default function PatientAssignments() {
           setStreak(patientData.racha_dias || 0);
         }
         
-        const fetchedTasks = await tasksService.getTasks();
-        setTasks(fetchedTasks);
+        if (patientData) {
+          const fetchedTasks = await tareasPacienteService.getTareasPorPaciente(patientData.id_paciente);
+          setTasks(fetchedTasks);
+        }
       } catch (error) {
         Alert.alert('Error', 'No se pudieron cargar los datos iniciales.');
         console.error(error);
@@ -86,27 +95,19 @@ export default function PatientAssignments() {
     initialize();
   }, []);
 
-  const handleCompleteTask = async (taskId: number) => {
+  const handleCompleteTask = async (id_tarea_paciente: number) => {
     const originalTasks = [...tasks];
-    
     const updatedTasks = tasks.map(task =>
-      task.id_tarea === taskId ? { ...task, estado: 'completada' } : task
-      );
+      task.id_tarea_paciente === id_tarea_paciente ? { ...task, estado: 'completada' } : task
+    );
     setTasks(updatedTasks);
-    
-    // Check if it was the last pending task *before* the state update
-    const pendingTasksBeforeUpdate = originalTasks.filter(t => t.estado?.toLowerCase() !== 'completada');
-    const wasLastPending = pendingTasksBeforeUpdate.length === 1 && pendingTasksBeforeUpdate[0].id_tarea === taskId;
-
     try {
-      await tasksService.completeTask(taskId);
-
-      if (wasLastPending && patientId) {
+      await tareasPacienteService.marcarTareaComoCompletada(id_tarea_paciente);
+      if (patientId) {
         const streakResult = await patientService.updateStreak(patientId);
         setStreak(streakResult.racha);
         Alert.alert("¡Racha Actualizada!", streakResult.mensaje);
       }
-
     } catch (error) {
       Alert.alert('Error', 'No se pudo completar la tarea. Inténtalo de nuevo.');
       setTasks(originalTasks);
@@ -119,7 +120,7 @@ export default function PatientAssignments() {
 
     if (activeFilter === 'Hoy') {
       return tasks.filter(task => {
-        const taskDate = new Date(task.fecha_fin);
+        const taskDate = new Date(task.fecha_asignacion);
         return taskDate >= startOfToday && taskDate < new Date(startOfToday.getTime() + 24 * 60 * 60 * 1000);
       });
     }
@@ -133,7 +134,7 @@ export default function PatientAssignments() {
       endOfWeek.setDate(endOfWeek.getDate() + 7);
 
       return tasks.filter(task => {
-        const taskDate = new Date(task.fecha_fin);
+        const taskDate = new Date(task.fecha_asignacion);
         return taskDate >= startOfWeek && taskDate < endOfWeek;
       });
     }
@@ -197,7 +198,12 @@ export default function PatientAssignments() {
               </View>
               {pendingTasks.length > 0 ? (
                 pendingTasks.map(task => (
-                  <TaskItem key={task.id_tarea} task={task} onComplete={handleCompleteTask} />
+                  <TaskItem key={task.id_tarea_paciente} task={{
+                    id_tarea: task.id_tarea_paciente,
+                    nombre_tarea: task.nombre_tarea,
+                    descripcion: task.descripcion,
+                    estado: task.estado,
+                  }} onComplete={handleCompleteTask} />
                 ))
               ) : (
                 <Text style={styles.emptyText}>No tienes tareas pendientes para {activeFilter.toLowerCase()}.</Text>
@@ -210,7 +216,12 @@ export default function PatientAssignments() {
                   <Text style={styles.cardTitle}>Tareas Completadas ({completedTasks.length})</Text>
                 </View>
                 {completedTasks.map(task => (
-                  <TaskItem key={task.id_tarea} task={task} onComplete={() => {}} />
+                  <TaskItem key={task.id_tarea_paciente} task={{
+                    id_tarea: task.id_tarea_paciente,
+                    nombre_tarea: task.nombre_tarea,
+                    descripcion: task.descripcion,
+                    estado: task.estado,
+                  }} onComplete={handleCompleteTask} />
                 ))}
               </View>
             )}

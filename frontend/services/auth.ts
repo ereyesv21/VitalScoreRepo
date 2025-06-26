@@ -67,7 +67,9 @@ export const authService = {
     getCurrentUser: async (): Promise<User | null> => {
         try {
             const userStr = await AsyncStorage.getItem('user');
-            return userStr ? JSON.parse(userStr) : null;
+            console.log('[getCurrentUser] userStr:', userStr);
+            if (!userStr) return null;
+            return JSON.parse(userStr);
         } catch (error) {
             console.error('Get current user error:', error);
             return null;
@@ -78,6 +80,10 @@ export const authService = {
     getCurrentRole: async (): Promise<UserRole | null> => {
         try {
             const role = await AsyncStorage.getItem('userRole');
+            // Si es un número (guardado como string), conviértelo a string de rol
+            if (role && !isNaN(Number(role))) {
+                return getRoleName(Number(role));
+            }
             return role as UserRole;
         } catch (error) {
             console.error('Get current role error:', error);
@@ -158,7 +164,7 @@ export const authService = {
 };
 
 // Función auxiliar para convertir ID de rol a nombre
-function getRoleName(roleId: number): UserRole {
+export function getRoleName(roleId: number): UserRole {
     switch (roleId) {
         case 1:
             return 'paciente';

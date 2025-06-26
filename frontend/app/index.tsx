@@ -11,19 +11,28 @@ export default function Index() {
     try {
       const token = await AsyncStorage.getItem('token');
       const userRole = await AsyncStorage.getItem('userRole');
+      console.log('userRole en index:', userRole);
+      console.log('token en index:', token);
 
       if (token && userRole) {
         // Usuario autenticado, redirigir según el rol
+        console.log('Redirigiendo, userRole:', userRole);
         if (userRole === 'paciente') {
-          router.replace('/(tabs)/patient/');
+          console.log('Redirigiendo a /patient');
+          router.replace('/patient');
+        } else if (userRole === 'administrador') {
+          console.log('Redirigiendo a /admin');
+          router.replace('/admin');
         } else if (userRole === 'medico') {
-          router.replace('/(tabs)/doctor/');
+          console.log('Redirigiendo a /doctor');
+          router.replace('/doctor');
         } else {
-          // Rol no reconocido, ir a login
+          console.log('Rol no reconocido, redirigiendo a /auth/login');
           router.replace('/auth/login');
         }
       } else {
         // No autenticado, ir a login
+        console.log('No autenticado, redirigiendo a /auth/login');
         router.replace('/auth/login');
       }
     } catch (error) {
@@ -33,5 +42,6 @@ export default function Index() {
     }
   };
 
+  console.log('Index render');
   return null; // No renderiza nada mientras verifica la autenticación
 } 

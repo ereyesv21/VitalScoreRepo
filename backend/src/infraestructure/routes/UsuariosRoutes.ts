@@ -5,6 +5,8 @@ import { UsuariosController } from '../controller/UsuariosController';
 import { authenticateToken } from '../web/authMiddleware';
 import { PacientesAdapter } from '../adapter/PacientesAdapter';
 import { MedicoAdapter } from '../adapter/MedicoAdapter';
+import { AdministradoresAdapter } from '../adapter/AdministradoresAdapter';
+import { AdministradoresApplicationService } from '../../application/AdministradoresApplicationService';
 
 const router = Router();
 
@@ -12,7 +14,9 @@ const router = Router();
 const usuariosAdapter = new UsuariosAdapter();
 const pacientesAdapter = new PacientesAdapter();
 const medicoAdapter = new MedicoAdapter();
-const usuariosAppService = new UsuariosApplicationService(usuariosAdapter, pacientesAdapter, medicoAdapter);
+const administradoresAdapter = new AdministradoresAdapter();
+const administradoresAppService = new AdministradoresApplicationService(administradoresAdapter, usuariosAdapter);
+const usuariosAppService = new UsuariosApplicationService(usuariosAdapter, pacientesAdapter, medicoAdapter, administradoresAppService);
 const usuariosController = new UsuariosController(usuariosAppService);
 
 //definir las rutas con manejo de errores 

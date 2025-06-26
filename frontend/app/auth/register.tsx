@@ -18,6 +18,7 @@ import { api } from '../../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { adminService } from '../../services/admin';
+import { registrationService } from '../../services/registration';
 
 interface EPS {
   id_eps: number;
@@ -122,24 +123,41 @@ export default function RegisterScreen() {
       let rolId = 1;
       if (rol === 'medico') rolId = 2;
       if (rol === 'administrador') rolId = 3;
-      const userData: any = {
+      
+      const userData = {
         nombre,
         apellido,
         correo: email,
         contraseña: password,
         genero,
         rol: rolId,
-        id_eps: epsId,
       };
+
+      let additionalData = {};
       if (rol === 'medico') {
-        userData.especialidad = especialidadId;
+        additionalData = { especialidad: especialidadId };
+      } else if (rol === 'paciente') {
+        additionalData = { id_eps: epsId };
+      } else if (rol === 'administrador') {
+        additionalData = { adminKey };
       }
-      if (rol === 'administrador') {
-        userData.adminKey = adminKey;
+
+      console.log('🔐 Enviando datos de registro:', { userData, additionalData });
+
+      // Usar el servicio de registro completo que maneja la creación del perfil
+      const result = await registrationService.completeRegistration(userData, additionalData);
+      
+      console.log('✅ Resultado del registro:', result);
+      
+      if (result.success) {
+        console.log('🎉 Registro exitoso, mostrando modal');
+        setShowSuccessModal(true);
+      } else {
+        console.log('❌ Registro falló');
+        Alert.alert('Error en el registro', 'No se pudo completar el registro');
       }
-      await api.post('/register', userData);
-      setShowSuccessModal(true);
     } catch (error: any) {
+      console.error('❌ Error en registro:', error);
       Alert.alert('Error en el registro', error.message || 'No se pudo completar el registro');
     } finally {
       setLoading(false);

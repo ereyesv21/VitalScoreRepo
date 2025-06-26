@@ -1,10 +1,12 @@
 import { API_TIMEOUT } from '../constants/Config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import { authService } from './auth';
+import { router } from 'expo-router';
 
 const API_URL = Platform.OS === 'web'
   ? "http://localhost:4000/api"
-  : "http://192.168.10.17:4000/api";
+  : "http://10.0.2.2:4000/api"; // Para Android emulator, usar 10.0.2.2 en lugar de localhost
 
 console.log('API Service - Usando URL:', API_URL);
 
@@ -15,12 +17,33 @@ class ApiError extends Error {
     }
 }
 
+// Endpoints que no requieren autenticación
+const PUBLIC_ENDPOINTS = [
+    '/register',
+    '/login',
+    '/public/eps',
+    '/public/especialidades'
+];
+
+const isPublicEndpoint = (endpoint: string) => {
+    return PUBLIC_ENDPOINTS.some(publicEndpoint => endpoint.startsWith(publicEndpoint));
+};
+
 const handleResponse = async (response: Response) => {
     const data = await response.json();
     
     if (!response.ok) {
-        // Try to get the specific error message from the backend
         const errorMessage = data.error || data.message || data.details || 'Something went wrong';
+
+        // Si el error es de token inválido/expirado, forzar logout y redirigir
+        if (
+            errorMessage.toLowerCase().includes('token') &&
+            (errorMessage.toLowerCase().includes('invalido') || errorMessage.toLowerCase().includes('expir'))
+        ) {
+            await authService.logout();
+            router.replace('/auth/login'); // o router.push según tu flujo
+        }
+
         throw new ApiError(response.status, errorMessage);
     }
     
@@ -40,14 +63,20 @@ export const api = {
         try {
             const token = await AsyncStorage.getItem('token');
             console.log('🌐 GET Request:', `${API_URL}${endpoint}`);
+            
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json',
+            };
+            
+            // Solo agregar token si no es un endpoint público
+            if (token && !isPublicEndpoint(endpoint)) {
+                headers.Authorization = `Bearer ${token}`;
+            }
+            
             const response = await Promise.race([
                 fetch(`${API_URL}${endpoint}`, {
                     method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        // Add auth token if available
-                        ...(token && { Authorization: `Bearer ${token}` }),
-                    },
+                    headers,
                 }),
                 timeoutPromise(API_TIMEOUT),
             ]);
@@ -67,13 +96,20 @@ export const api = {
         try {
             const token = await AsyncStorage.getItem('token');
             console.log('🌐 POST Request:', `${API_URL}${endpoint}`, data);
+            
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json',
+            };
+            
+            // Solo agregar token si no es un endpoint público
+            if (token && !isPublicEndpoint(endpoint)) {
+                headers.Authorization = `Bearer ${token}`;
+            }
+            
             const response = await Promise.race([
                 fetch(`${API_URL}${endpoint}`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(token && { Authorization: `Bearer ${token}` }),
-                    },
+                    headers,
                     body: JSON.stringify(data),
                 }),
                 timeoutPromise(API_TIMEOUT),
@@ -93,13 +129,20 @@ export const api = {
     put: async (endpoint: string, data: any) => {
         try {
             const token = await AsyncStorage.getItem('token');
+            
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json',
+            };
+            
+            // Solo agregar token si no es un endpoint público
+            if (token && !isPublicEndpoint(endpoint)) {
+                headers.Authorization = `Bearer ${token}`;
+            }
+            
             const response = await Promise.race([
                 fetch(`${API_URL}${endpoint}`, {
                     method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(token && { Authorization: `Bearer ${token}` }),
-                    },
+                    headers,
                     body: JSON.stringify(data),
                 }),
                 timeoutPromise(API_TIMEOUT),
@@ -117,13 +160,20 @@ export const api = {
     delete: async (endpoint: string) => {
         try {
             const token = await AsyncStorage.getItem('token');
+            
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json',
+            };
+            
+            // Solo agregar token si no es un endpoint público
+            if (token && !isPublicEndpoint(endpoint)) {
+                headers.Authorization = `Bearer ${token}`;
+            }
+            
             const response = await Promise.race([
                 fetch(`${API_URL}${endpoint}`, {
                     method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(token && { Authorization: `Bearer ${token}` }),
-                    },
+                    headers,
                 }),
                 timeoutPromise(API_TIMEOUT),
             ]);

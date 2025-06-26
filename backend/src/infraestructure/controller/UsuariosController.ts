@@ -27,18 +27,26 @@ export class UsuariosController {
         }
 
         // Determinar el rol basado en el ID del rol
-        const rol = usuario.rol === 1 ? 'paciente' : 'medico';
+        function getRoleName(rol: number): string {
+          switch (rol) {
+            case 1: return 'paciente';
+            case 2: return 'medico';
+            case 3: return 'administrador';
+            default: return 'paciente';
+          }
+        }
+        const rol = getRoleName(usuario.rol);
 
         return res.status(200).json({ 
           message: "Login exitoso", 
           token,
-          rol,
-          usuario: {
-            id: usuario.id_usuario,
+          user: {
+            id_usuario: usuario.id_usuario,
             nombre: usuario.nombre,
             apellido: usuario.apellido,
             correo: usuario.correo,
-            genero: usuario.genero
+            genero: usuario.genero,
+            rol: usuario.rol
           }
         });
 
@@ -139,6 +147,8 @@ export class UsuariosController {
                     return res.status(400).json({ error: "La especialidad es requerida para médicos" });
                 }
                 await this.app.createMedicoProfile(usuarioId, { especialidad, eps: id_eps });
+            } else if (rol === 3) { // Administrador
+                await this.app.createAdministradorProfile(usuarioId);
             }
 
             // Generar token de autenticación
@@ -148,7 +158,7 @@ export class UsuariosController {
                 message: "Registro completo exitoso", 
                 usuarioId,
                 token,
-                rol: rol === 1 ? 'paciente' : 'medico'
+                rol: rol === 1 ? 'paciente' : rol === 2 ? 'medico' : 'administrador'
             });
         } catch (error) {
             if (error instanceof Error) {

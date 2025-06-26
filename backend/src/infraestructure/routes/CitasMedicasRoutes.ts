@@ -18,6 +18,8 @@ const citasMedicasController = new CitasMedicasController(citasMedicasAppService
 // Definir las rutas con manejo de errores y autenticación
 
 router.post('/cita-medica', authenticateToken, async (req, res) => {
+    console.log('[CitasMedicasRoutes] POST /cita-medica recibido');
+    console.log('[CitasMedicasRoutes] Body:', JSON.stringify(req.body, null, 2));
     await citasMedicasController.createCitaMedica(req, res);
 });
 
@@ -27,6 +29,10 @@ router.get('/citas-medicas', authenticateToken, async (req, res) => {
 
 router.get('/cita-medica/:id', authenticateToken, async (req, res) => {
     await citasMedicasController.getCitaMedicaById(req, res);
+});
+
+router.get('/citas-medicas/paciente/current', authenticateToken, async (req, res) => {
+    await citasMedicasController.getCitasMedicasByPacienteCurrent(req, res);
 });
 
 router.get('/citas-medicas/paciente/:paciente', authenticateToken, async (req, res) => {

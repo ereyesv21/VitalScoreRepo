@@ -163,4 +163,21 @@ export class HorariosMedicosController {
       });
     }
   }
+
+  // NUEVO MÉTODO: Obtener horarios disponibles de un médico para una fecha
+  async getDisponibilidadByMedicoYFecha(req: Request, res: Response): Promise<void> {
+    try {
+      const medicoId = parseInt(req.params.medicoId);
+      const fecha = req.query.fecha as string;
+      if (!fecha) {
+        res.status(400).json({ success: false, message: 'La fecha es requerida' });
+        return;
+      }
+      const result = await this.horariosMedicosService.getDisponibilidadByMedicoYFecha(medicoId, fecha);
+      res.status(200).json(result);
+    } catch (error) {
+      console.error('Error al obtener disponibilidad de horarios:', error);
+      res.status(400).json({ success: false, message: error instanceof Error ? error.message : 'Error interno del servidor' });
+    }
+  }
 } 

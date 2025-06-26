@@ -1,122 +1,35 @@
-import { Tabs } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';
-import { Colors } from '../../constants/Colors';
+import { Stack } from 'expo-router';
 import { useAuth } from '../../hooks/useAuth';
 import { ProtectedRoute } from '../../components/ProtectedRoute';
+import { ActivityIndicator, View, Text } from 'react-native';
+import { Colors } from '../../constants/Colors';
 
 export default function TabLayout() {
   const { role, isAuthenticated, loading } = useAuth();
 
+  console.log('TabLayout render, role:', role, 'isAuthenticated:', isAuthenticated, 'loading:', loading);
+
+  // Mostrar un loader mientras loading es true
   if (loading) {
-    return null; // El ProtectedRoute se encargará del loading
-  }
-
-  if (!isAuthenticated) {
-    return null; // El ProtectedRoute redirigirá al login
-  }
-
-  // Renderizar tabs según el rol
-  if (role === 'administrador') {
     return (
-      <ProtectedRoute allowedRoles={['administrador']}>
-        <Tabs
-          screenOptions={{
-            tabBarActiveTintColor: Colors.primary.main,
-            tabBarInactiveTintColor: Colors.grey[500],
-            tabBarStyle: {
-              backgroundColor: Colors.light.background,
-              borderTopColor: Colors.grey[200],
-            },
-            headerStyle: {
-              backgroundColor: Colors.primary.main,
-            },
-            headerTintColor: Colors.light.background,
-            headerTitleStyle: {
-              fontWeight: 'bold',
-            },
-          }}
-        >
-          <Tabs.Screen
-            name="admin"
-            options={{
-              title: 'Administrador',
-              tabBarIcon: ({ color, size }) => (
-                <MaterialIcons name="admin-panel-settings" size={size} color={color} />
-              ),
-              href: null, // Ocultar esta tab, las sub-tabs se manejan en admin/_layout.tsx
-            }}
-          />
-        </Tabs>
-      </ProtectedRoute>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: Colors.light.background }}>
+        <ActivityIndicator size="large" color={Colors.primary.main} />
+        <Text style={{ marginTop: 16, fontSize: 16, color: Colors.grey[600] }}>Cargando autenticación...</Text>
+      </View>
     );
   }
 
-  if (role === 'medico') {
-    return (
-      <ProtectedRoute allowedRoles={['medico']}>
-        <Tabs
-          screenOptions={{
-            tabBarActiveTintColor: Colors.primary.main,
-            tabBarInactiveTintColor: Colors.grey[500],
-            tabBarStyle: {
-              backgroundColor: Colors.light.background,
-              borderTopColor: Colors.grey[200],
-            },
-            headerStyle: {
-              backgroundColor: Colors.primary.main,
-            },
-            headerTintColor: Colors.light.background,
-            headerTitleStyle: {
-              fontWeight: 'bold',
-            },
-          }}
-        >
-          <Tabs.Screen
-            name="doctor"
-            options={{
-              title: 'Médico',
-              tabBarIcon: ({ color, size }) => (
-                <MaterialIcons name="medical-services" size={size} color={color} />
-              ),
-              href: null, // Ocultar esta tab, las sub-tabs se manejan en doctor/_layout.tsx
-            }}
-          />
-        </Tabs>
-      </ProtectedRoute>
-    );
-  }
+  // Si no está autenticado, no renderizar nada (ProtectedRoute se encarga de redirigir)
+  if (!isAuthenticated) return null;
 
-  // Rol por defecto: paciente
+  // Renderizar solo cuando loading es false y autenticado
   return (
-    <ProtectedRoute allowedRoles={['paciente']}>
-      <Tabs
-        screenOptions={{
-          tabBarActiveTintColor: Colors.primary.main,
-          tabBarInactiveTintColor: Colors.grey[500],
-          tabBarStyle: {
-            backgroundColor: Colors.light.background,
-            borderTopColor: Colors.grey[200],
-          },
-          headerStyle: {
-            backgroundColor: Colors.primary.main,
-          },
-          headerTintColor: Colors.light.background,
-          headerTitleStyle: {
-            fontWeight: 'bold',
-          },
-        }}
-      >
-        <Tabs.Screen
-          name="patient"
-          options={{
-            title: 'Paciente',
-            tabBarIcon: ({ color, size }) => (
-              <MaterialIcons name="person" size={size} color={color} />
-            ),
-            href: null, // Ocultar esta tab, las sub-tabs se manejan en patient/_layout.tsx
-          }}
-        />
-      </Tabs>
+    <ProtectedRoute allowedRoles={['administrador', 'medico', 'paciente']}>
+      <Stack screenOptions={{ headerShown: false }}>
+        {role === 'administrador' && <Stack.Screen name="admin" />}
+        {role === 'medico' && <Stack.Screen name="doctor" />}
+        {role === 'paciente' && <Stack.Screen name="patient" />}
+      </Stack>
     </ProtectedRoute>
   );
 } 

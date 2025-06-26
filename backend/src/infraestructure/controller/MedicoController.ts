@@ -9,6 +9,114 @@ export class MedicoController {
         this.app = app;
     }
 
+    // Nuevo método: Obtener médico actual (logueado)
+    async getCurrentMedico(req: Request, res: Response): Promise<Response> {
+        try {
+            // Obtener el ID del usuario desde el token JWT
+            const userId = (req as any).user?.id;
+            if (!userId) {
+                return res.status(401).json({ error: "Usuario no autenticado" });
+            }
+
+            const medico = await this.app.getMedicoByUsuario(userId);
+            if (!medico) {
+                return res.status(404).json({ error: "Médico no encontrado para este usuario" });
+            }
+
+            return res.status(200).json(medico);
+        } catch (error) {
+            if (error instanceof Error) {
+                return res.status(500).json({
+                    error: "Error interno del servidor",
+                    details: error.message,
+                });
+            }
+            return res.status(500).json({ error: "Error interno del servidor" });
+        }
+    }
+
+    // Nuevo método: Obtener citas del médico actual
+    async getCurrentMedicoCitas(req: Request, res: Response): Promise<Response> {
+        try {
+            const userId = (req as any).user?.id;
+            console.log('[MedicoController] userId extraído del token:', userId);
+            if (!userId) {
+                return res.status(401).json({ error: "Usuario no autenticado" });
+            }
+
+            const medico = await this.app.getMedicoByUsuario(userId);
+            console.log('[MedicoController] Médico encontrado para userId', userId, ':', medico);
+            if (!medico) {
+                return res.status(404).json({ error: "Médico no encontrado para este usuario" });
+            }
+
+            const citas = await this.app.getCitasMedicasByMedico(medico.id_medico);
+            console.log('[MedicoController] Citas encontradas para medicoId', medico.id_medico, ':', citas.length);
+            return res.status(200).json(citas);
+        } catch (error) {
+            if (error instanceof Error) {
+                console.error('[MedicoController] Error interno:', error.message);
+                return res.status(500).json({
+                    error: "Error interno del servidor",
+                    details: error.message,
+                });
+            }
+            return res.status(500).json({ error: "Error interno del servidor" });
+        }
+    }
+
+    // Nuevo método: Obtener pacientes del médico actual
+    async getCurrentMedicoPacientes(req: Request, res: Response): Promise<Response> {
+        try {
+            const userId = (req as any).user?.id;
+            if (!userId) {
+                return res.status(401).json({ error: "Usuario no autenticado" });
+            }
+
+            const medico = await this.app.getMedicoByUsuario(userId);
+            if (!medico) {
+                return res.status(404).json({ error: "Médico no encontrado para este usuario" });
+            }
+
+            const pacientes = await this.app.getPacientesByMedico(medico.id_medico);
+            return res.status(200).json(pacientes);
+        } catch (error) {
+            if (error instanceof Error) {
+                return res.status(500).json({
+                    error: "Error interno del servidor",
+                    details: error.message,
+                });
+            }
+            return res.status(500).json({ error: "Error interno del servidor" });
+        }
+    }
+
+    // Nuevo método: Obtener estadísticas del médico actual
+    async getCurrentMedicoStats(req: Request, res: Response): Promise<Response> {
+        try {
+            const userId = (req as any).user?.id;
+            if (!userId) {
+                return res.status(401).json({ error: "Usuario no autenticado" });
+            }
+
+            const medico = await this.app.getMedicoByUsuario(userId);
+            if (!medico) {
+                return res.status(404).json({ error: "Médico no encontrado para este usuario" });
+            }
+
+            const stats = await this.app.getMedicoStats(medico.id_medico);
+            return res.status(200).json(stats);
+        } catch (error) {
+            if (error instanceof Error) {
+                return res.status(500).json({
+                    error: "Error interno del servidor",
+                    details: error.message,
+                });
+            }
+            return res.status(500).json({ error: "Error interno del servidor" });
+        }
+    }
+
     async createMedico(req: Request, res: Response): Promise<Response> {
         try {
             const { especialidad, usuario, eps } = req.body;

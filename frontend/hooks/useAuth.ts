@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { authService, User, UserRole } from '../services/auth';
+import { getRoleName } from '../services/auth';
 
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -21,7 +22,15 @@ export const useAuth = () => {
       ]);
 
       setUser(currentUser);
-      setRole(currentRole);
+      if (typeof currentRole === 'number') {
+        setRole(getRoleName(currentRole));
+      } else if (typeof currentRole === 'string') {
+        setRole(currentRole as UserRole);
+      } else if (currentUser && typeof currentUser.rol === 'number') {
+        setRole(getRoleName(currentUser.rol));
+      } else {
+        setRole(null);
+      }
       setIsAuthenticated(authenticated);
     } catch (error) {
       console.error('Error checking auth status:', error);
@@ -84,6 +93,7 @@ export const useAuth = () => {
   const isDoctor = (): boolean => hasRole('medico');
   const isPatient = (): boolean => hasRole('paciente');
 
+  console.log('useAuth: role', role, 'isAuthenticated', isAuthenticated, 'loading', loading);
   return {
     user,
     role,
@@ -98,18 +108,4 @@ export const useAuth = () => {
     isPatient,
     checkAuthStatus
   };
-};
-
-// Función auxiliar para convertir ID de rol a nombre
-function getRoleName(roleId: number): UserRole {
-  switch (roleId) {
-    case 1:
-      return 'paciente';
-    case 2:
-      return 'medico';
-    case 3:
-      return 'administrador';
-    default:
-      return 'paciente';
-  }
-} 
+}; 
