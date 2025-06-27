@@ -18,14 +18,14 @@ export default function Index() {
         // Usuario autenticado, redirigir según el rol
         console.log('Redirigiendo, userRole:', userRole);
         if (userRole === 'paciente') {
-          console.log('Redirigiendo a /patient');
-          router.replace('/patient');
+          console.log('Redirigiendo a /(tabs)/patient');
+          router.replace('/(tabs)/patient');
         } else if (userRole === 'administrador') {
-          console.log('Redirigiendo a /admin');
-          router.replace('/admin');
+          console.log('Redirigiendo a /(tabs)/admin');
+          router.replace('/(tabs)/admin');
         } else if (userRole === 'medico') {
-          console.log('Redirigiendo a /doctor');
-          router.replace('/doctor');
+          console.log('Redirigiendo a /(tabs)/doctor');
+          router.replace('/(tabs)/doctor');
         } else {
           console.log('Rol no reconocido, redirigiendo a /auth/login');
           router.replace('/auth/login');

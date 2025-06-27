@@ -200,7 +200,12 @@ export class PacientesAdapter implements PacientePort {
                 .leftJoinAndSelect("paciente.eps", "eps")
                 .where("usuario.id_usuario = :usuarioId", { usuarioId: usuario })
                 .getOne();
-            console.log('[PacientesAdapter] Resultado paciente:', paciente);
+            console.log('[PacientesAdapter] Resultado paciente para usuario', usuario, ':', paciente);
+            if (!paciente) {
+                // Log extra: mostrar todos los pacientes y sus usuarios
+                const all = await this.pacienteRepository.find({ relations: ["usuario"] });
+                console.log('[PacientesAdapter] Todos los pacientes y sus usuarios:', all.map(p => ({ id_paciente: p.id_paciente, usuario: p.usuario })));
+            }
             return paciente ? this.toDomain(paciente) : null;
         } catch (error) {
             console.error("Error fetching paciente by usuario:", error);

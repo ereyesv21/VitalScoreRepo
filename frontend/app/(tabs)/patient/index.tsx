@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Modal, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Modal, Dimensions, Platform } from 'react-native';
 import { Colors } from '../../../constants/Colors';
 import { router, Link } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { patientService, PatientWithUser } from '../../../services/patients';
 import { authService } from '../../../services/auth';
+import { useAuth } from '../../../hooks/useAuth';
 import { Ionicons, FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 import { useFonts } from 'expo-font';
 import { rewardsService, Reward } from '../../../services/rewards';
@@ -100,6 +101,7 @@ const learnTopics = [
 ];
 
 export default function PatientDashboard() {
+  const { logout } = useAuth();
   const [patientData, setPatientData] = useState<PatientWithUser | null>(null);
   const [highlightedRewards, setHighlightedRewards] = useState<Reward[]>([]);
   const [userName, setUserName] = useState('');
@@ -110,17 +112,18 @@ export default function PatientDashboard() {
   const [completedTasks, setCompletedTasks] = useState<any[]>([]);
   const [consecutiveDays, setConsecutiveDays] = useState(0);
   const [pendingTasks, setPendingTasks] = useState<TareaPaciente[]>([]);
+  const [showWebLogoutModal, setShowWebLogoutModal] = useState(false);
 
   useEffect(() => {
     loadDashboardData();
     fetchUpcomingAppointments();
   }, []);
 
-  // Recarga automática cada 10 segundos
+  // Recarga automática cada 20 minutos
   useEffect(() => {
     const interval = setInterval(() => {
       loadDashboardData();
-    }, 10000); // 10 segundos
+    }, 1200000); // 20 minutos
     return () => clearInterval(interval);
   }, []);
 
@@ -236,29 +239,29 @@ export default function PatientDashboard() {
   };
 
   const handleLogout = async () => {
-    console.log('Botón Salir presionado. Mostrando alerta...');
-    Alert.alert(
-      'Cerrar Sesión',
-      '¿Estás seguro de que quieres cerrar sesión?',
-      [
-        {
-          text: 'Cancelar',
-          style: 'cancel',
-        },
-        {
-          text: 'Cerrar Sesión',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await authService.logout();
-              router.replace('/auth/login');
-            } catch (error) {
-              Alert.alert('Error', 'No se pudo cerrar la sesión.');
-            }
+    if (Platform.OS === 'web') {
+      setShowWebLogoutModal(true);
+    } else {
+      Alert.alert(
+        'Cerrar Sesión',
+        '¿Estás seguro de que quieres cerrar sesión?',
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Cerrar Sesión',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await logout();
+                router.replace('/auth/login');
+              } catch (error) {
+                Alert.alert('Error', 'No se pudo cerrar la sesión. Inténtalo de nuevo.');
+              }
+            },
           },
-        },
-      ]
-    );
+        ]
+      );
+    }
   };
 
   const openModal = (topic: (typeof learnTopics)[0]) => {
@@ -451,6 +454,37 @@ export default function PatientDashboard() {
               >
                 <Text style={styles.modalCloseButtonText}>Entendido</Text>
               </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* Modal de logout para web */}
+      {Platform.OS === 'web' && (
+        <Modal
+          visible={showWebLogoutModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowWebLogoutModal(false)}
+        >
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' }}>
+            <View style={{ backgroundColor: '#fff', padding: 24, borderRadius: 12, alignItems: 'center', minWidth: 280 }}>
+              <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 12 }}>¿Cerrar sesión?</Text>
+              <Text style={{ marginBottom: 24 }}>¿Estás seguro de que quieres cerrar sesión?</Text>
+              <View style={{ flexDirection: 'row', gap: 16 }}>
+                <TouchableOpacity onPress={() => setShowWebLogoutModal(false)}>
+                  <Text style={{ color: '#888', fontWeight: 'bold', fontSize: 16 }}>Cancelar</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={async () => {
+                    setShowWebLogoutModal(false);
+                    await logout();
+                    router.replace('/auth/login');
+                  }}
+                >
+                  <Text style={{ color: 'red', fontWeight: 'bold', fontSize: 16 }}>Cerrar Sesión</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </Modal>

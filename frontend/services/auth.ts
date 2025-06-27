@@ -129,9 +129,37 @@ export const authService = {
     // Logout
     logout: async (): Promise<void> => {
         try {
-            await AsyncStorage.multiRemove(['token', 'user', 'userRole']);
+            console.log('🔄 Iniciando logout...');
+            
+            // Limpiar todos los datos de autenticación
+            const keysToRemove = ['token', 'user', 'userRole'];
+            await AsyncStorage.multiRemove(keysToRemove);
+            
+            console.log('✅ Datos de autenticación eliminados');
+            
+            // Verificar que se limpiaron correctamente
+            const remainingToken = await AsyncStorage.getItem('token');
+            const remainingUser = await AsyncStorage.getItem('user');
+            const remainingRole = await AsyncStorage.getItem('userRole');
+            
+            console.log('🔍 Verificación post-logout:', {
+                token: remainingToken,
+                user: remainingUser,
+                role: remainingRole
+            });
+            
+            if (remainingToken || remainingUser || remainingRole) {
+                console.warn('⚠️ Algunos datos no se limpiaron correctamente');
+                // Intentar limpiar individualmente
+                await AsyncStorage.removeItem('token');
+                await AsyncStorage.removeItem('user');
+                await AsyncStorage.removeItem('userRole');
+            }
+            
+            console.log('✅ Logout completado exitosamente');
         } catch (error) {
-            console.error('Logout error:', error);
+            console.error('❌ Error durante logout:', error);
+            throw error;
         }
     },
 

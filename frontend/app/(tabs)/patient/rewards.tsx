@@ -4,6 +4,7 @@ import { Colors } from '../../../constants/Colors';
 import { Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { rewardsService, Reward } from '../../../services/rewards';
 import { patientService } from '../../../services/patients';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function RewardsScreen() {
   const [allRewards, setAllRewards] = useState<Reward[]>([]);
@@ -109,40 +110,9 @@ export default function RewardsScreen() {
     }
   };
 
-  // Función mejorada para elegir la imagen según el nombre o descripción de la recompensa
-  const getImageForReward = (rewardName: string, descripcion: string = '') => {
-    const text = (rewardName + ' ' + (descripcion || '')).toLowerCase();
-
-    // Imagen especial para cualquier variante de 'consulta gratis'
-    if (text.includes('consulta') && (text.includes('gratis') || text.includes('gratuita')))
-      return 'https://images.unsplash.com/photo-1503437313881-503a91226419?auto=format&fit=crop&w=800&q=80'; // doctor profesional
-
-    if (text.includes('consulta') || text.includes('médico') || text.includes('doctor'))
-      return 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd2e?auto=format&fit=crop&w=800&q=80'; // consulta médica
-
-    if (text.includes('descuento') || text.includes('bono') || text.includes('cupón'))
-      return 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80'; // descuento
-
-    if (text.includes('kit') || text.includes('termómetro') || text.includes('botella') || text.includes('termo'))
-      return 'https://images.unsplash.com/photo-1519864600265-abb23847ef2c?auto=format&fit=crop&w=800&q=80'; // kit
-
-    if (text.includes('charla') || text.includes('acceso') || text.includes('evento') || text.includes('webinar'))
-      return 'https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=800&q=80'; // charla/evento
-
-    if (text.includes('yoga') || text.includes('gimnasio') || text.includes('ejercicio') || text.includes('fitness'))
-      return 'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=800&q=80'; // yoga/gym
-
-    if (text.includes('masaje') || text.includes('spa') || text.includes('relajación'))
-      return 'https://images.unsplash.com/photo-1504196606672-aef5c9cefc92?auto=format&fit=crop&w=800&q=80'; // masaje/spa
-
-    if (text.includes('nutrición') || text.includes('alimentación') || text.includes('dieta'))
-      return 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=800&q=80'; // nutrición
-
-    if (text.includes('fruta') || text.includes('fresa') || text.includes('alimento'))
-      return 'https://images.unsplash.com/photo-1464306076886-debca5e8a6b0?auto=format&fit=crop&w=800&q=80'; // frutas
-
-    // Imagen genérica de regalo
-    return 'https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80';
+  // Función simplificada para usar la misma imagen de cupón para todas las recompensas
+  const getImageForReward = () => {
+    return require('../../../assets/images/cupon.jpg');
   };
 
   const renderContent = () => {
@@ -169,17 +139,26 @@ export default function RewardsScreen() {
       <ScrollView contentContainerStyle={styles.gridContainer}>
         {filteredRewards.map(reward => (
           <View key={reward.id_recompensa} style={styles.rewardCard}>
-            <Image
-              source={{ uri: getImageForReward(reward.nombre, reward.descripcion) }}
-              style={styles.rewardImage}
-            />
+            <View style={styles.imageContainer}>
+              <Image
+                source={getImageForReward()}
+                style={styles.rewardImage}
+                resizeMode="contain"
+              />
+              <View style={styles.pointsBadge}>
+                <LinearGradient
+                  colors={['#FFD700', '#FFA500']}
+                  style={styles.gradientBadge}
+                >
+                  <Ionicons name="star" size={16} color="#fff" />
+                  <Text style={styles.pointsBadgeText}>
+                    {reward.puntos_necesarios.toLocaleString()} pts
+                  </Text>
+                </LinearGradient>
+              </View>
+            </View>
             <View style={styles.rewardInfo}>
               <Text style={styles.rewardName}>{reward.nombre}</Text>
-              <Text style={styles.rewardProvider}>de {reward.proveedor.nombre}</Text>
-              <View style={styles.pointsTag}>
-                <Ionicons name="star" size={14} color={Colors.primary.main} />
-                <Text style={styles.pointsValue}>{reward.puntos_necesarios.toLocaleString()} pts</Text>
-              </View>
               <TouchableOpacity
                 style={{ marginTop: 10, backgroundColor: Colors.primary.main, borderRadius: 8, paddingVertical: 8, paddingHorizontal: 16 }}
                 onPress={() => handleRedeem(reward)}
@@ -403,10 +382,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   rewardCard: {
-    width: '48%',
+    width: '100%',
+    maxWidth: 340,
     backgroundColor: Colors.light.background,
-    borderRadius: 12,
-    marginBottom: 15,
+    borderRadius: 16,
+    marginBottom: 18,
     shadowColor: "#000",
     shadowOffset: {
       width: 0,
@@ -415,6 +395,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    alignSelf: 'center',
   },
   rewardInfo: {
     padding: 12,
@@ -424,32 +405,47 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Colors.grey[800],
   },
-  rewardProvider: {
-    fontSize: 12,
-    color: Colors.grey[500],
-    marginTop: 2,
-    marginBottom: 8,
-  },
-  pointsTag: {
-    flexDirection: 'row',
+  imageContainer: {
+    position: 'relative',
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    overflow: 'hidden',
     alignItems: 'center',
-    alignSelf: 'flex-start',
-    backgroundColor: Colors.primary.light,
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-  },
-  pointsValue: {
-    marginLeft: 5,
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: Colors.primary.main,
+    justifyContent: 'center',
   },
   rewardImage: {
     width: '100%',
-    height: 100,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-    resizeMode: 'cover',
+    height: 160,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    backgroundColor: '#fff',
+  },
+  pointsBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    zIndex: 1,
+  },
+  gradientBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  pointsBadgeText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
+    marginLeft: 4,
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
 }); 

@@ -78,7 +78,10 @@ export default function AdminDashboard() {
           </Text>
           <TouchableOpacity
             style={{ backgroundColor: Colors.error.main, borderRadius: 8, paddingVertical: 10, paddingHorizontal: 24, marginTop: 8 }}
-            onPress={logout}
+            onPress={() => {
+              logout();
+              router.replace('/auth/login');
+            }}
           >
             <Text style={{ color: '#fff', fontWeight: 'bold' }}>Cerrar sesión</Text>
           </TouchableOpacity>

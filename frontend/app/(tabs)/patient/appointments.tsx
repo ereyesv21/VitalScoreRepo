@@ -115,11 +115,16 @@ export default function PatientAppointments() {
     try {
       const hora_inicio = horarioObj.hora_inicio;
       const hora_fin = horarioObj.hora_fin;
-      const userDataStr = await AsyncStorage.getItem('userData');
-      const userData = userDataStr ? JSON.parse(userDataStr) : null;
+      const userStr = await AsyncStorage.getItem('user');
+      const userData = userStr ? JSON.parse(userStr) : null;
       // Obtener todos los pacientes
       const pacientes = await adminService.getAllPatients();
-      const paciente = pacientes.find((p: any) => p.usuario === userData.id);
+      const paciente = pacientes.find((p: any) => {
+        if (typeof p.usuario === 'object' && p.usuario !== null) {
+          return p.usuario.id_usuario === userData.id_usuario || p.usuario.id === userData.id;
+        }
+        return p.usuario === userData.id_usuario || p.usuario === userData.id;
+      });
       const pacienteId = paciente?.id_paciente;
       if (!pacienteId) {
         setError('No se pudo obtener el id del paciente.');
@@ -157,7 +162,11 @@ export default function PatientAppointments() {
     const fetchMyAppointments = async () => {
       setLoadingAppointments(true);
       try {
+        const userStr = await AsyncStorage.getItem('user');
+        const userData = userStr ? JSON.parse(userStr) : null;
+        console.log('Usuario autenticado:', userData);
         const citas = await appointmentsService.getMyAppointments();
+        console.log('Citas obtenidas para paciente:', citas);
         setMyAppointments(Array.isArray(citas) ? citas : []);
       } catch {
         setMyAppointments([]);
