@@ -6,7 +6,7 @@ import { router } from 'expo-router';
 
 const API_URL = Platform.OS === 'web'
   ? "http://localhost:4000/api"
-  : "http://10.0.2.2:4000/api"; // Para Android emulator, usar 10.0.2.2 en lugar de localhost
+  : "http://192.168.100.77:4000/api"; // Para Android emulator, usar 10.0.2.2 en lugar de localhost
 
 console.log('API Service - Usando URL:', API_URL);
 
