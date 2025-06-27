@@ -134,14 +134,14 @@ export default function PatientProfile() {
       // Cargar paciente
       await loadPatient();
       
-      // Cargar citas si tenemos usuario
-      if (user?.id_usuario) {
-        await loadAppointments();
-      }
-      
-      // Cargar cita específica si tenemos citaId
+      // Si tenemos citaId específico, cargar solo esa cita
       if (citaId) {
         await loadSelectedAppointmentById();
+      } else {
+        // Si no hay citaId, cargar todas las citas
+        if (user?.id_usuario) {
+          await loadAppointments();
+        }
       }
     };
 
@@ -150,10 +150,10 @@ export default function PatientProfile() {
 
   // useEffect separado para recargar citas cuando el usuario cambie
   useEffect(() => {
-    if (user?.id_usuario && pacienteId && !authLoading) {
+    if (user?.id_usuario && pacienteId && !authLoading && !citaId) {
       loadAppointments();
     }
-  }, [user?.id_usuario, pacienteId, authLoading]);
+  }, [user?.id_usuario, pacienteId, authLoading, citaId]);
 
   const handleAction = async (action: string, citaId: number) => {
     try {
@@ -170,7 +170,12 @@ export default function PatientProfile() {
         try {
           await appointmentsService.markNoShow(citaId);
           setShowSuccessNoShowModal(true);
-          await loadAppointments();
+          // Recargar la cita específica si estamos en modo cita específica
+          if (citaId) {
+            await loadSelectedAppointmentById();
+          } else {
+            await loadAppointments();
+          }
         } finally {
           setLoadingNoShow(false);
         }
@@ -193,8 +198,13 @@ export default function PatientProfile() {
         setShowCancelModal(false);
         setCancelReason('');
         setCancelCitaId(null);
-        await loadAppointments(); // Recargar citas después de cancelar
-        setShowSuccessCancelModal(true); // Mostrar confirmación de éxito
+        // Recargar la cita específica si estamos en modo cita específica
+        if (citaId) {
+          await loadSelectedAppointmentById();
+        } else {
+          await loadAppointments();
+        }
+        setShowSuccessCancelModal(true);
       } catch (e) {
         alert('Error al cancelar la cita');
       } finally {
@@ -242,6 +252,10 @@ export default function PatientProfile() {
   const patientLastName = patient?.apellido || patient?.usuario_data?.apellido || '';
   const doctorName = user?.nombre || '';
 
+  // Determinar si estamos en modo cita específica
+  const isSpecificAppointment = !!citaId && selectedAppointment;
+  const isAppointmentCancelled = selectedAppointment?.estado === 'cancelada';
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -257,7 +271,7 @@ export default function PatientProfile() {
               Dr(a). {doctorName}
             </Text>
             <Text style={styles.headerSubtitle}>
-              Perfil del Paciente
+              {isSpecificAppointment ? 'Detalle de Cita' : 'Perfil del Paciente'}
             </Text>
           </View>
         </View>
@@ -271,52 +285,51 @@ export default function PatientProfile() {
         <Text style={styles.label}>Correo:</Text>
         <Text style={styles.value}>{patient?.correo || patient?.usuario_data?.correo}</Text>
         
-        {/* Citas con este médico */}
-        <Text style={styles.sectionTitle}>Citas con este paciente</Text>
-        
-        {/* Loading para citas */}
-        {loadingAppointments ? (
-          <View style={styles.appointmentsLoading}>
-            <ActivityIndicator size="small" color={Colors.primary.main} />
-            <Text style={styles.loadingText}>Cargando citas...</Text>
-          </View>
-        ) : appointments.length === 0 ? (
-          <Text style={styles.emptyText}>No hay citas programadas con este paciente.</Text>
-        ) : (
-          appointments.map((cita) => (
+        {/* Sección de citas */}
+        {isSpecificAppointment ? (
+          // Modo cita específica - mostrar solo la cita seleccionada
+          <View>
+            <Text style={styles.sectionTitle}>Detalle de la Cita</Text>
             <View
-              key={cita.id_cita}
               style={[
                 styles.citaItem,
-                cita.estado === 'cancelada' && styles.citaItemCancelled,
+                isAppointmentCancelled && styles.citaItemCancelled,
               ]}
             >
               <Text
                 style={[
                   styles.citaText,
-                  cita.estado === 'cancelada' && styles.cancelledText,
+                  isAppointmentCancelled && styles.cancelledText,
                 ]}
               >
-                {cita.fecha_cita} | {cita.hora_inicio} - {cita.hora_fin}
+                Fecha: {selectedAppointment.fecha_cita}
               </Text>
               <Text
                 style={[
                   styles.citaText,
-                  cita.estado === 'cancelada' && styles.cancelledText,
+                  isAppointmentCancelled && styles.cancelledText,
                 ]}
               >
-                Estado: {cita.estado === 'cancelada' ? 'Cancelado' : cita.estado}
+                Hora: {selectedAppointment.hora_inicio} - {selectedAppointment.hora_fin}
               </Text>
-              {cita.estado === 'cancelada' && (
+              <Text
+                style={[
+                  styles.citaText,
+                  isAppointmentCancelled && styles.cancelledText,
+                ]}
+              >
+                Estado: {isAppointmentCancelled ? 'Cancelado' : selectedAppointment.estado}
+              </Text>
+              {isAppointmentCancelled && (
                 <Text style={styles.cancelledReason}>
-                  Motivo: {cita.motivo_cancelacion}
+                  Motivo: {selectedAppointment.motivo_cancelacion}
                 </Text>
               )}
-              {cita.estado !== 'cancelada' && (
+              {!isAppointmentCancelled && (
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
                   <TouchableOpacity
                     style={[styles.actionBtn, loadingCancel && styles.actionBtnDisabled]}
-                    onPress={() => handleAction('cancelar', cita.id_cita)}
+                    onPress={() => handleAction('cancelar', selectedAppointment.id_cita)}
                     disabled={loadingCancel}
                   >
                     <Text style={styles.actionText}>
@@ -325,7 +338,7 @@ export default function PatientProfile() {
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.actionBtn, loadingNoShow && styles.actionBtnDisabled]}
-                    onPress={() => handleAction('no_asistio', cita.id_cita)}
+                    onPress={() => handleAction('no_asistio', selectedAppointment.id_cita)}
                     disabled={loadingNoShow}
                   >
                     <Text style={styles.actionText}>
@@ -335,19 +348,101 @@ export default function PatientProfile() {
                 </View>
               )}
             </View>
-          ))
+          </View>
+        ) : (
+          // Modo normal - mostrar todas las citas
+          <View>
+            <Text style={styles.sectionTitle}>Citas con este paciente</Text>
+            
+            {/* Loading para citas */}
+            {loadingAppointments ? (
+              <View style={styles.appointmentsLoading}>
+                <ActivityIndicator size="small" color={Colors.primary.main} />
+                <Text style={styles.loadingText}>Cargando citas...</Text>
+              </View>
+            ) : appointments.length === 0 ? (
+              <Text style={styles.emptyText}>No hay citas programadas con este paciente.</Text>
+            ) : (
+              appointments.map((cita) => (
+                <View
+                  key={cita.id_cita}
+                  style={[
+                    styles.citaItem,
+                    cita.estado === 'cancelada' && styles.citaItemCancelled,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.citaText,
+                      cita.estado === 'cancelada' && styles.cancelledText,
+                    ]}
+                  >
+                    {cita.fecha_cita} | {cita.hora_inicio} - {cita.hora_fin}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.citaText,
+                      cita.estado === 'cancelada' && styles.cancelledText,
+                    ]}
+                  >
+                    Estado: {cita.estado === 'cancelada' ? 'Cancelado' : cita.estado}
+                  </Text>
+                  {cita.estado === 'cancelada' && (
+                    <Text style={styles.cancelledReason}>
+                      Motivo: {cita.motivo_cancelacion}
+                    </Text>
+                  )}
+                  {cita.estado !== 'cancelada' && (
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+                      <TouchableOpacity
+                        style={[styles.actionBtn, loadingCancel && styles.actionBtnDisabled]}
+                        onPress={() => handleAction('cancelar', cita.id_cita)}
+                        disabled={loadingCancel}
+                      >
+                        <Text style={styles.actionText}>
+                          {loadingCancel ? 'Cancelando...' : 'Cancelar'}
+                        </Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={[styles.actionBtn, loadingNoShow && styles.actionBtnDisabled]}
+                        onPress={() => handleAction('no_asistio', cita.id_cita)}
+                        disabled={loadingNoShow}
+                      >
+                        <Text style={styles.actionText}>
+                          {loadingNoShow ? 'Marcando...' : 'No asistió'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              ))
+            )}
+          </View>
         )}
         
-        {/* Botones de acción */}
-        {(!selectedAppointment || selectedAppointment.estado !== 'cancelada') && (
+        {/* Botones de acción - solo mostrar si la cita no está cancelada */}
+        {(!isSpecificAppointment || !isAppointmentCancelled) && (
           <TouchableOpacity style={styles.button} onPress={() => router.push({ pathname: '/(tabs)/doctor/assign-task', params: { pacienteId } })}>
             <Text style={styles.buttonText}>Asignar Tarea/Diagnóstico</Text>
           </TouchableOpacity>
         )}
         
-        <TouchableOpacity style={[styles.button, { backgroundColor: '#22c55e' }]} onPress={() => setShowPointsModal(true)}>
-          <Text style={styles.buttonText}>Asignar Puntos</Text>
-        </TouchableOpacity>
+        {/* Botón de asignar puntos - solo mostrar si la cita no está cancelada */}
+        {(!isSpecificAppointment || !isAppointmentCancelled) && (
+          <TouchableOpacity style={[styles.button, { backgroundColor: '#22c55e' }]} onPress={() => setShowPointsModal(true)}>
+            <Text style={styles.buttonText}>Asignar Puntos</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Botón para volver a citas si estamos en modo cita específica */}
+        {isSpecificAppointment && (
+          <TouchableOpacity 
+            style={[styles.button, { backgroundColor: Colors.grey[600] }]} 
+            onPress={() => router.push('/(tabs)/doctor/appointments')}
+          >
+            <Text style={styles.buttonText}>Volver a Citas</Text>
+          </TouchableOpacity>
+        )}
 
         {/* Modal para cancelar cita */}
         <Modal
