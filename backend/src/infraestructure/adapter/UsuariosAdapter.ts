@@ -65,9 +65,11 @@ export class UsuariosAdapter implements UsuariosPort {
 
             //actualizar solo los campos enviados
             if (usuario.nombre) existingUsuario.nombre = usuario.nombre;
+            if (usuario.apellido) existingUsuario.apellido = usuario.apellido;
             if (usuario.correo) existingUsuario.correo = usuario.correo;
             if (usuario.contraseña) existingUsuario.contraseña = usuario.contraseña;
             if (usuario.estado !== undefined) existingUsuario.estado = usuario.estado;
+            if (usuario.genero) existingUsuario.genero = usuario.genero;
 
             await this.usuarioRepository.save(existingUsuario);
             return true;

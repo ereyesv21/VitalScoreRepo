@@ -43,7 +43,7 @@ export class UsuariosApplicationService {
         // Validar si el correo ya existe
         const existingUser = await this.usuariosPort.getUsuarioByCorreo(usuarioData.correo);
         if (existingUser) {
-            throw new Error("El usuario con este correo ya existe");
+            throw new Error("Error en el registro. Verifica los datos ingresados.");
         }
         // Hashear la contraseña antes de guardar
         const hashedPassword = await bcrypt.hash(usuarioData.contraseña, 10);
@@ -73,7 +73,7 @@ export class UsuariosApplicationService {
         if (usuarioData.correo && usuarioData.correo !== usuarioExistente.correo) {
             const usuarioConCorreo = await this.usuariosPort.getUsuarioByCorreo(usuarioData.correo);
             if (usuarioConCorreo && usuarioConCorreo.id_usuario !== id) {
-                throw new Error("El correo ya está en uso por otro usuario");
+                throw new Error("Error en la actualización. Verifica los datos ingresados.");
             }
         }
         // Si se actualiza la contraseña, hashearla

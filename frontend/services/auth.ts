@@ -187,7 +187,7 @@ export const authService = {
     },
 
     updateProfile: async (id: number, data: Partial<User>) => {
-        return api.put(`/user/${id}`, data);
+        return api.put(`/usuario/${id}`, data);
     },
 };
 

@@ -45,11 +45,30 @@ export default function RegisterScreen() {
   const [especialidades, setEspecialidades] = useState<any[]>([]);
   const [especialidadId, setEspecialidadId] = useState<number | null>(null);
   const [especialidadesError, setEspecialidadesError] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [confirmPasswordError, setConfirmPasswordError] = useState('');
+  const [nombreError, setNombreError] = useState('');
+  const [apellidoError, setApellidoError] = useState('');
+  const [generoError, setGeneroError] = useState('');
+  const [rolError, setRolError] = useState('');
+  const [epsError, setEpsError] = useState('');
+  const [especialidadError, setEspecialidadError] = useState('');
+  const [adminKeyError, setAdminKeyError] = useState('');
+
+  const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+  const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{6,}$/;
 
   useEffect(() => {
     loadEPS();
     loadEspecialidades();
   }, []);
+
+  useEffect(() => {
+    if (rol !== 'paciente') {
+      setEpsError('');
+    }
+  }, [rol]);
 
   const loadEPS = async () => {
     setLoadingEps(true);
@@ -92,28 +111,117 @@ export default function RegisterScreen() {
     }
   };
 
+  const handleEmailChange = (text: string) => {
+    setEmail(text);
+    if (!emailRegex.test(text)) {
+      setEmailError('El correo electrónico no tiene un formato válido');
+    } else {
+      setEmailError('');
+    }
+  };
+
+  const handlePasswordChange = (text: string) => {
+    setPassword(text);
+    if (!passwordRegex.test(text)) {
+      setPasswordError('La contraseña debe tener al menos 6 caracteres, incluyendo al menos una letra y un número');
+    } else {
+      setPasswordError('');
+    }
+  };
+
+  const handleConfirmPasswordChange = (text: string) => {
+    setConfirmPassword(text);
+    if (text !== password) {
+      setConfirmPasswordError('Las contraseñas no coinciden');
+    } else {
+      setConfirmPasswordError('');
+    }
+  };
+
+  const handleAdminKeyChange = (text: string) => {
+    setAdminKey(text);
+    if (rol === 'administrador' && text !== '20252025') {
+      setAdminKeyError('La clave de administrador es inválida');
+    } else {
+      setAdminKeyError('');
+    }
+  };
+
   const validateForm = () => {
-    if (!nombre || !apellido || !email || !password || !confirmPassword || !genero || !rol || !epsId) {
-      Alert.alert('Error', 'Por favor completa todos los campos obligatorios');
-      return false;
+    let valid = true;
+    if (!nombre) {
+      setNombreError('El nombre es obligatorio');
+      valid = false;
+    } else {
+      setNombreError('');
     }
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Las contraseñas no coinciden');
-      return false;
+    if (!apellido) {
+      setApellidoError('El apellido es obligatorio');
+      valid = false;
+    } else {
+      setApellidoError('');
     }
-    if (password.length < 6) {
-      Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres');
-      return false;
+    if (!email) {
+      setEmailError('El correo es obligatorio');
+      valid = false;
+    } else if (!emailRegex.test(email)) {
+      setEmailError('El correo electrónico no tiene un formato válido');
+      valid = false;
+    } else {
+      setEmailError('');
+    }
+    if (!password) {
+      setPasswordError('La contraseña es obligatoria');
+      valid = false;
+    } else if (!passwordRegex.test(password)) {
+      setPasswordError('La contraseña debe tener al menos 6 caracteres, incluyendo al menos una letra y un número');
+      valid = false;
+    } else {
+      setPasswordError('');
+    }
+    if (!confirmPassword) {
+      setConfirmPasswordError('Debes confirmar la contraseña');
+      valid = false;
+    } else if (confirmPassword !== password) {
+      setConfirmPasswordError('Las contraseñas no coinciden');
+      valid = false;
+    } else {
+      setConfirmPasswordError('');
+    }
+    if (!genero) {
+      setGeneroError('El género es obligatorio');
+      valid = false;
+    } else {
+      setGeneroError('');
+    }
+    if (!rol) {
+      setRolError('El tipo de usuario es obligatorio');
+      valid = false;
+    } else {
+      setRolError('');
+    }
+    if (rol === 'paciente' && !epsId) {
+      setEpsError('La EPS es obligatoria');
+      valid = false;
+    } else {
+      setEpsError('');
     }
     if (rol === 'medico' && !especialidadId) {
-      Alert.alert('Error', 'Por favor selecciona tu especialidad');
-      return false;
+      setEspecialidadError('La especialidad es obligatoria');
+      valid = false;
+    } else {
+      setEspecialidadError('');
     }
-    if (rol === 'administrador' && !adminKey) {
-      Alert.alert('Error', 'Por favor ingresa la clave de administrador');
-      return false;
+    if (rol === 'administrador' && adminKey !== '20252025') {
+      setAdminKeyError('La clave de administrador es inválida');
+      valid = false;
+    } else if (rol === 'administrador' && !adminKey) {
+      setAdminKeyError('La clave de administrador es obligatoria');
+      valid = false;
+    } else {
+      setAdminKeyError('');
     }
-    return true;
+    return valid;
   };
 
   const handleRegister = async () => {
@@ -128,7 +236,7 @@ export default function RegisterScreen() {
         nombre,
         apellido,
         correo: email,
-        contraseña: password,
+        password: password,
         genero,
         rol: rolId,
       };
@@ -158,7 +266,20 @@ export default function RegisterScreen() {
       }
     } catch (error: any) {
       console.error('❌ Error en registro:', error);
-      Alert.alert('Error en el registro', error.message || 'No se pudo completar el registro');
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Error status:', error.status);
+      
+      // Manejar específicamente el error de correo duplicado
+      if (error.message && error.message.includes('Error en el registro')) {
+        console.log('🔍 Mostrando error de correo duplicado en campo email');
+        setEmailError('Este correo electrónico ya está registrado');
+      } else if (error.status === 400) {
+        console.log('🔍 Error 400 recibido, mostrando en campo email');
+        setEmailError('Este correo electrónico ya está registrado');
+      } else {
+        console.log('🔍 Error genérico, mostrando Alert');
+        Alert.alert('Error en el registro', error.message || 'No se pudo completar el registro');
+      }
     } finally {
       setLoading(false);
     }
@@ -167,6 +288,11 @@ export default function RegisterScreen() {
   const handleGoToLogin = () => {
     setShowSuccessModal(false);
     router.push('/auth/login');
+  };
+
+  const handleEpsSelect = (id: number) => {
+    setEpsId(id);
+    setEpsError('');
   };
 
   return (
@@ -205,6 +331,9 @@ export default function RegisterScreen() {
                 </TouchableOpacity>
               </View>
             </View>
+            {rolError ? (
+              <Text style={{ color: Colors.error.main, marginTop: 4, marginLeft: 4, fontSize: 13 }}>{rolError}</Text>
+            ) : null}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Nombre *</Text>
               <View style={styles.inputContainer}>
@@ -217,6 +346,9 @@ export default function RegisterScreen() {
                   autoCapitalize="words"
                 />
               </View>
+              {nombreError ? (
+                <Text style={{ color: Colors.error.main, marginTop: 4, marginLeft: 4, fontSize: 13 }}>{nombreError}</Text>
+              ) : null}
             </View>
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Apellido *</Text>
@@ -230,6 +362,9 @@ export default function RegisterScreen() {
                   autoCapitalize="words"
                 />
               </View>
+              {apellidoError ? (
+                <Text style={{ color: Colors.error.main, marginTop: 4, marginLeft: 4, fontSize: 13 }}>{apellidoError}</Text>
+              ) : null}
             </View>
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Correo electrónico *</Text>
@@ -239,11 +374,14 @@ export default function RegisterScreen() {
                   style={styles.input}
                   placeholder="correo@ejemplo.com"
                   value={email}
-                  onChangeText={setEmail}
+                  onChangeText={handleEmailChange}
                   keyboardType="email-address"
                   autoCapitalize="none"
                 />
               </View>
+              {emailError ? (
+                <Text style={{ color: Colors.error.main, marginTop: 4, marginLeft: 4, fontSize: 13 }}>{emailError}</Text>
+              ) : null}
             </View>
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Contraseña *</Text>
@@ -253,13 +391,16 @@ export default function RegisterScreen() {
                   style={styles.input}
                   placeholder="Mínimo 6 caracteres"
                   value={password}
-                  onChangeText={setPassword}
+                  onChangeText={handlePasswordChange}
                   secureTextEntry={!showPassword}
                 />
                 <TouchableOpacity onPress={() => setShowPassword(!showPassword)}>
                   <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={22} color={Colors.grey[400]} />
                 </TouchableOpacity>
               </View>
+              {passwordError ? (
+                <Text style={{ color: Colors.error.main, marginTop: 4, marginLeft: 4, fontSize: 13 }}>{passwordError}</Text>
+              ) : null}
             </View>
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Confirmar contraseña *</Text>
@@ -269,13 +410,16 @@ export default function RegisterScreen() {
                   style={styles.input}
                   placeholder="Vuelve a escribir la contraseña"
                   value={confirmPassword}
-                  onChangeText={setConfirmPassword}
+                  onChangeText={handleConfirmPasswordChange}
                   secureTextEntry={!showConfirmPassword}
                 />
                 <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)}>
                   <Ionicons name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'} size={22} color={Colors.grey[400]} />
                 </TouchableOpacity>
               </View>
+              {confirmPasswordError ? (
+                <Text style={{ color: Colors.error.main, marginTop: 4, marginLeft: 4, fontSize: 13 }}>{confirmPasswordError}</Text>
+              ) : null}
             </View>
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Género *</Text>
@@ -293,6 +437,9 @@ export default function RegisterScreen() {
                   <Text style={[styles.roleButtonText, genero === 'Femenino' && styles.roleButtonTextActive]}>Femenino</Text>
                 </TouchableOpacity>
               </View>
+              {generoError ? (
+                <Text style={{ color: Colors.error.main, marginTop: 4, marginLeft: 4, fontSize: 13 }}>{generoError}</Text>
+              ) : null}
             </View>
             {rol === 'medico' && (
               <View style={styles.inputGroup}>
@@ -318,6 +465,9 @@ export default function RegisterScreen() {
                     ))}
                   </View>
                 )}
+                {especialidadError ? (
+                  <Text style={{ color: Colors.error.main, marginTop: 4, marginLeft: 4, fontSize: 13 }}>{especialidadError}</Text>
+                ) : null}
               </View>
             )}
             {rol === 'administrador' && (
@@ -329,10 +479,13 @@ export default function RegisterScreen() {
                     style={styles.input}
                     placeholder="Ingresa la clave de administrador"
                     value={adminKey}
-                    onChangeText={setAdminKey}
+                    onChangeText={handleAdminKeyChange}
                     secureTextEntry
                   />
                 </View>
+                {adminKeyError ? (
+                  <Text style={{ color: Colors.error.main, marginTop: 4, marginLeft: 4, fontSize: 13 }}>{adminKeyError}</Text>
+                ) : null}
               </View>
             )}
             <View style={styles.inputGroup}>
@@ -345,7 +498,7 @@ export default function RegisterScreen() {
                     <TouchableOpacity
                       key={eps.id_eps}
                       style={[styles.pickerButton, epsId === eps.id_eps && styles.pickerButtonActive]}
-                      onPress={() => setEpsId(eps.id_eps)}
+                      onPress={() => handleEpsSelect(eps.id_eps)}
                     >
                       <Text style={[styles.pickerButtonText, epsId === eps.id_eps && styles.pickerButtonTextActive]}>
                         {eps.nombre}
@@ -354,11 +507,14 @@ export default function RegisterScreen() {
                   ))}
                 </View>
               )}
+              {epsError ? (
+                <Text style={{ color: Colors.error.main, marginTop: 4, marginLeft: 4, fontSize: 13 }}>{epsError}</Text>
+              ) : null}
             </View>
             <TouchableOpacity
-              style={[styles.button, loading && styles.buttonDisabled]}
+              style={[styles.button, (loading || !!emailError || !!passwordError || !!confirmPasswordError || !!nombreError || !!apellidoError || !!generoError || !!rolError || !!epsError || !!especialidadError || !!adminKeyError) && styles.buttonDisabled]}
               onPress={handleRegister}
-              disabled={loading}
+              disabled={loading || !!emailError || !!passwordError || !!confirmPasswordError || !!nombreError || !!apellidoError || !!generoError || !!rolError || !!epsError || !!especialidadError || !!adminKeyError}
             >
               {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Registrarme</Text>}
             </TouchableOpacity>

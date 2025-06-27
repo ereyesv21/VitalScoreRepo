@@ -57,7 +57,10 @@ export class UsuariosController {
 
     async createUsuario(req: Request, res: Response): Promise<Response> {
         try {
-            const { nombre, apellido, correo, contraseña, estado = "activo", rol = 1, genero } = req.body;
+            const { nombre, apellido, correo, contraseña, password, estado = "activo", rol = 1, genero } = req.body;
+
+            // Usar password si está disponible, sino usar contraseña
+            const passwordToUse = password || contraseña;
 
             // Validaciones con expresiones regulares
             if (!/^[A-Za-zÁÉÍÓÚáéíóúÑñ]+(?:\s[A-Za-zÁÉÍÓÚáéíóúÑñ]+)?$/.test(nombre.trim()))
@@ -68,7 +71,7 @@ export class UsuariosController {
             if (!/^[\w.-]+@[a-zA-Z\d.-]+\.[a-zA-Z]{2,}$/.test(correo.trim()))
                 return res.status(400).json({ error: "Correo electrónico no válido" });
 
-            if (!/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/.test(contraseña.trim()))
+            if (!/^(?=.*[A-Za-z])(?=.*\d).{6,}$/.test(passwordToUse.trim()))
                 return res.status(400).json({
                     error: "La contraseña debe tener al menos 6 caracteres, incluyendo al menos una letra y un número",
                 });
@@ -78,7 +81,7 @@ export class UsuariosController {
                 nombre, 
                 apellido, 
                 correo, 
-                contraseña, 
+                contraseña: passwordToUse, 
                 estado, 
                 rol,
                 genero 
@@ -88,6 +91,12 @@ export class UsuariosController {
             return res.status(201).json({ message: "Usuario creado con éxito", usuarioId });
         } catch (error) {
             if (error instanceof Error) {
+                // Si el error es sobre correo duplicado, enviar mensaje genérico
+                if (error.message.includes("Error en el registro")) {
+                    return res.status(400).json({
+                        error: "Error en el registro. Verifica los datos ingresados."
+                    });
+                }
                 return res.status(500).json({
                     error: "Error interno del servidor",
                     details: error.message,
@@ -105,12 +114,16 @@ export class UsuariosController {
                 apellido, 
                 correo, 
                 contraseña, 
+                password,
                 estado = "activo", 
                 rol = 1, 
                 genero,
                 especialidad, // For doctors
                 id_eps = 1 // Default EPS
             } = req.body;
+
+            // Usar password si está disponible, sino usar contraseña
+            const passwordToUse = password || contraseña;
 
             // Validaciones con expresiones regulares
             if (!/^[A-Za-zÁÉÍÓÚáéíóúÑñ]+(?:\s[A-Za-zÁÉÍÓÚáéíóúÑñ]+)?$/.test(nombre.trim()))
@@ -121,7 +134,7 @@ export class UsuariosController {
             if (!/^[\w.-]+@[a-zA-Z\d.-]+\.[a-zA-Z]{2,}$/.test(correo.trim()))
                 return res.status(400).json({ error: "Correo electrónico no válido" });
 
-            if (!/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/.test(contraseña.trim()))
+            if (!/^(?=.*[A-Za-z])(?=.*\d).{6,}$/.test(passwordToUse.trim()))
                 return res.status(400).json({
                     error: "La contraseña debe tener al menos 6 caracteres, incluyendo al menos una letra y un número",
                 });
@@ -131,7 +144,7 @@ export class UsuariosController {
                 nombre, 
                 apellido, 
                 correo, 
-                contraseña, 
+                contraseña: passwordToUse, 
                 estado, 
                 rol,
                 genero 
@@ -152,7 +165,7 @@ export class UsuariosController {
             }
 
             // Generar token de autenticación
-            const token = await this.app.login(correo, contraseña);
+            const token = await this.app.login(correo, passwordToUse);
 
             return res.status(201).json({ 
                 message: "Registro completo exitoso", 
@@ -161,7 +174,17 @@ export class UsuariosController {
                 rol: rol === 1 ? 'paciente' : rol === 2 ? 'medico' : 'administrador'
             });
         } catch (error) {
+            console.log("🔍 Error completo en completeRegistration:", error);
             if (error instanceof Error) {
+                console.log("🔍 Error message:", error.message);
+                // Si el error es sobre correo duplicado, enviar mensaje genérico
+                if (error.message.includes("Error en el registro")) {
+                    console.log("🔍 Enviando error 400 para correo duplicado");
+                    return res.status(400).json({
+                        error: "Error en el registro. Verifica los datos ingresados."
+                    });
+                }
+                console.log("🔍 Enviando error 500 genérico");
                 return res.status(500).json({
                     error: "Error interno del servidor",
                     details: error.message,
@@ -238,7 +261,7 @@ export class UsuariosController {
         try {
             const id = parseInt(req.params.id);
             if (isNaN(id)) return res.status(400).json({ error: "El id debe ser un número o id invalido" });
-            let { nombre, correo, contraseña, estado } = req.body;
+            let { nombre, apellido, correo, contraseña, estado, genero } = req.body;
 
             // Validaciones con expresiones regulares
             if (nombre && !/^[a-zA-Z\s}]{3,}/.test(nombre.trim()))
@@ -249,10 +272,18 @@ export class UsuariosController {
                             "El nombre debe tener al menos 3 caracteres y solo contener letras",
                     });
 
+            if (apellido && !/^[a-zA-Z\s}]{3,}/.test(apellido.trim()))
+                return res
+                    .status(400)
+                    .json({
+                        error:
+                            "El apellido debe tener al menos 3 caracteres y solo contener letras",
+                    });
+
             if (correo && !/^[\w.-]+@[a-zA-Z\d.-]+\.[a-zA-Z]{2,}$/.test(correo.trim()))
                 return res.status(400).json({ error: "Correo electrónico no válido" });
 
-            if (contraseña && !/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/.test(contraseña.trim()))
+            if (contraseña && !/^(?=.*[A-Za-z])(?=.*\d).{6,}$/.test(contraseña.trim()))
                 return res
                     .status(400)
                     .json({
@@ -260,21 +291,34 @@ export class UsuariosController {
                             "La contraseña debe tener al menos 6 caracteres, incluyendo al menos una letra y un número",
                     });
 
-            estado = "activo";
-
             // Actualizar usuario
             const updated = await this.app.updateUsuario(id, {
                 nombre,
+                apellido,
                 correo,
                 contraseña,
-                estado
+                estado,
+                genero
             });
 
             if (!updated) return res.status(404).json({ error: "Usuario no encontrado" });
 
-            return res.status(200).json({ message: "Usuario actualizado con éxito", usuario: updated });
+            // Obtener los datos actualizados del usuario
+            const updatedUser = await this.app.getUsuarioById(id);
+            if (!updatedUser) return res.status(404).json({ error: "Usuario no encontrado después de la actualización" });
+
+            return res.status(200).json({ 
+                message: "Usuario actualizado con éxito", 
+                usuario: updatedUser 
+            });
         } catch (error) {
             if (error instanceof Error) {
+                // Si el error es sobre correo duplicado, enviar mensaje genérico
+                if (error.message.includes("Error en la actualización")) {
+                    return res.status(400).json({
+                        error: "Error en la actualización. Verifica los datos ingresados."
+                    });
+                }
                 return res
                     .status(500)
                     .json({

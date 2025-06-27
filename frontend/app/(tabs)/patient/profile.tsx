@@ -161,7 +161,7 @@ export default function PatientProfile() {
           </View>
         </View>
 
-        <TouchableOpacity style={styles.editButton}>
+        <TouchableOpacity style={styles.editButton} onPress={() => router.push('/(tabs)/patient/edit-profile')}>
           <Text style={styles.editButtonText}>Editar Perfil</Text>
         </TouchableOpacity>
 

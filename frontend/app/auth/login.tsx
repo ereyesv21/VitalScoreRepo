@@ -23,6 +23,10 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showWelcomeMessage, setShowWelcomeMessage] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const emailRegex = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+  const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{6,}$/;
 
   useEffect(() => {
     checkTempCredentials();
@@ -49,6 +53,24 @@ export default function LoginScreen() {
       }
     } catch (error) {
       console.error('Error checking temp credentials:', error);
+    }
+  };
+
+  const handleEmailChange = (text: string) => {
+    setEmail(text);
+    if (!emailRegex.test(text)) {
+      setEmailError('El correo electrónico no tiene un formato válido');
+    } else {
+      setEmailError('');
+    }
+  };
+
+  const handlePasswordChange = (text: string) => {
+    setPassword(text);
+    if (!passwordRegex.test(text)) {
+      setPasswordError('La contraseña debe tener al menos 6 caracteres, incluyendo al menos una letra y un número');
+    } else {
+      setPasswordError('');
     }
   };
 
@@ -145,11 +167,14 @@ export default function LoginScreen() {
                 placeholder="ejemplo@correo.com"
                 placeholderTextColor={Colors.grey[400]}
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={handleEmailChange}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
               />
+              {emailError ? (
+                <Text style={{ color: Colors.error.main, marginTop: 4, marginLeft: 4, fontSize: 13 }}>{emailError}</Text>
+              ) : null}
             </View>
 
             {/* Password Input */}
@@ -161,7 +186,7 @@ export default function LoginScreen() {
                   placeholder="Ingresa tu contraseña"
                   placeholderTextColor={Colors.grey[400]}
                   value={password}
-                  onChangeText={setPassword}
+                  onChangeText={handlePasswordChange}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
                 />
@@ -176,6 +201,9 @@ export default function LoginScreen() {
                   />
                 </TouchableOpacity>
               </View>
+              {passwordError ? (
+                <Text style={{ color: Colors.error.main, marginTop: 4, marginLeft: 4, fontSize: 13 }}>{passwordError}</Text>
+              ) : null}
             </View>
 
             {/* Forgot Password */}
@@ -190,9 +218,9 @@ export default function LoginScreen() {
 
             {/* Login Button */}
             <TouchableOpacity
-              style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+              style={[styles.loginButton, (loading || !!emailError || !!passwordError) && styles.loginButtonDisabled]}
               onPress={handleLogin}
-              disabled={loading}
+              disabled={loading || !!emailError || !!passwordError}
             >
               {loading ? (
                 <ActivityIndicator color={Colors.primary.contrast} />

@@ -6,7 +6,7 @@ export interface RegistrationData {
     nombre: string;
     apellido: string;
     correo: string;
-    contraseña: string;
+    password: string;
     genero: string;
     rol: number; // 1 for paciente, 2 for medico
     especialidad?: string; // Required for doctors

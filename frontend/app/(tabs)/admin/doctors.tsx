@@ -34,6 +34,7 @@ export default function DoctorsAdmin() {
   const [epsList, setEpsList] = useState<any[]>([]);
   const router = useRouter();
   const [hoveredRow, setHoveredRow] = useState<number | null>(null);
+  const [toggleLoadingId, setToggleLoadingId] = useState<number | null>(null);
 
   useEffect(() => {
     console.log('useEffect ejecutado');
@@ -68,6 +69,7 @@ export default function DoctorsAdmin() {
   };
 
   const handleDelete = async (doctor: Doctor) => {
+    console.log('[handleDelete] doctor:', doctor);
     Alert.alert(
       'Eliminar médico',
       `¿Seguro que deseas eliminar al médico ${doctor.usuario_data?.nombre} ${doctor.usuario_data?.apellido}? Esta acción no se puede deshacer y eliminará también el usuario relacionado.`,
@@ -78,11 +80,14 @@ export default function DoctorsAdmin() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await adminService.deleteDoctor(doctor.id_medico, doctor.usuario);
+              console.log('[handleDelete] Eliminando médico con id:', doctor.id_medico, 'usuario:', doctor.usuario);
+              const resp = await adminService.deleteDoctor(doctor.id_medico, doctor.usuario);
+              console.log('[handleDelete] Respuesta de eliminación:', resp);
               fetchDoctors();
               Alert.alert('Éxito', 'Médico eliminado correctamente.');
             } catch (error) {
-              Alert.alert('Error', 'No se pudo eliminar el médico.');
+              console.error('[handleDelete] Error eliminando médico:', error);
+              Alert.alert('Error', 'No se pudo eliminar el médico. ' + (error?.message || ''));
             }
           },
         },
@@ -91,12 +96,20 @@ export default function DoctorsAdmin() {
   };
 
   const handleToggleActive = async (doctor: Doctor) => {
+    setToggleLoadingId(doctor.id_medico);
+    console.log('[handleToggleActive] doctor:', doctor);
     try {
       const newEstado = doctor.usuario_data?.estado === 'activo' ? 'inactivo' : 'activo';
-      await adminService.setUserStatus(doctor.usuario, newEstado);
+      console.log('[handleToggleActive] Cambiando estado a:', newEstado, 'para usuario:', doctor.usuario);
+      const resp = await adminService.setUserStatus(doctor.usuario, newEstado);
+      console.log('[handleToggleActive] Respuesta de cambio de estado:', resp);
       fetchDoctors();
+      Alert.alert('Éxito', `El médico ha sido ${newEstado === 'activo' ? 'activado' : 'inactivado'}.`);
     } catch (error) {
-      Alert.alert('Error', 'No se pudo cambiar el estado del médico.');
+      console.error('[handleToggleActive] Error cambiando estado:', error);
+      Alert.alert('Error', 'No se pudo cambiar el estado del médico. ' + (error?.message || ''));
+    } finally {
+      setToggleLoadingId(null);
     }
   };
 
@@ -126,8 +139,12 @@ export default function DoctorsAdmin() {
         <TouchableOpacity onPress={() => handleDelete(item)} style={{ padding: 4 }}>
           <MaterialIcons name="delete" size={24} color={Colors.error.main} />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleToggleActive(item)} style={{ padding: 4 }}>
-          <MaterialIcons name={item.usuario_data?.estado === 'activo' ? 'toggle-on' : 'toggle-off'} size={28} color={item.usuario_data?.estado === 'activo' ? Colors.success.main : Colors.grey[400]} />
+        <TouchableOpacity onPress={() => handleToggleActive(item)} style={{ padding: 4 }} disabled={toggleLoadingId === item.id_medico}>
+          {toggleLoadingId === item.id_medico ? (
+            <ActivityIndicator size={20} color={item.usuario_data?.estado === 'activo' ? Colors.success.main : Colors.grey[400]} />
+          ) : (
+            <MaterialIcons name={item.usuario_data?.estado === 'activo' ? 'toggle-on' : 'toggle-off'} size={28} color={item.usuario_data?.estado === 'activo' ? Colors.success.main : Colors.grey[400]} />
+          )}
         </TouchableOpacity>
       </View>
     </View>
